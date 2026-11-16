@@ -90,6 +90,24 @@ td .delta{font-size:12px;margin-left:6px}
 .rec .v{font:700 24px/1.15 var(--f-display)}
 .rec .d{font-size:13px;color:var(--ink2);overflow-wrap:anywhere}
 .note{font-size:13px;color:var(--ink2);background:var(--accent-soft);border-radius:10px;padding:10px 12px}
+/* piano coach */
+.tabs{display:flex;gap:6px}
+.tabs button{font:600 13px var(--f-body);border:1px solid var(--line);background:var(--card);color:var(--ink2);padding:7px 12px;border-radius:99px;cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--card)}
+.tabs button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.days{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,138px),1fr))}
+.day{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;grid-template-columns:minmax(0,1fr);gap:8px;align-content:start;min-width:0}
+.day.today{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.day h4{margin:0;font:700 14px var(--f-display);display:flex;justify-content:space-between;gap:6px}
+.day h4 span{font:500 12px var(--f-body);color:var(--muted)}
+.sess{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;padding-left:10px;border-left:3px solid var(--other);min-width:0;overflow-wrap:anywhere}
+.sess .t{font-size:12px;color:var(--muted)}
+.sess .n{font-weight:600;font-size:14px;line-height:1.3}
+.sess .did{font-size:12px;color:var(--ink2)}
+.sess details{font-size:12.5px;color:var(--ink2)}
+.sess summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:12px}
+.sess ul{margin:6px 0 0;padding-left:16px;display:grid;gap:3px}
+.rest{font-size:13px;color:var(--muted)}
 footer{font-size:12.5px;color:var(--muted)}
 @media (prefers-reduced-motion:no-preference){.season i{transition:width .8s ease}}
 </style>
@@ -107,6 +125,11 @@ footer{font-size:12.5px;color:var(--muted)}
       <div class="season-l"><span id="s0"></span><span id="s1"></span></div>
     </div>
   </header>
+
+  <section id="coachsec" hidden>
+    <div class="ctitle"><div><h2>Il piano del coach</h2><p class="sub" id="csub"></p></div><div id="ctabs" class="tabs"></div></div>
+    <div class="days" id="cdays"></div>
+  </section>
 
   <section>
     <div><h2>Le tappe di verifica</h2><p class="sub">Stima calcolata dal tuo miglior 5 km delle ultime 8 settimane (formula di Riegel). È un'indicazione, non una previsione certa.</p></div>
@@ -184,6 +207,29 @@ const t0 = pd(D.totals.first), t1 = pd(G.date), tn = pd(D.today);
 setTimeout(()=>{$("seasonbar").style.width = Math.min(100,Math.max(2,(tn-t0)/(t1-t0)*100)).toFixed(1)+"%";},50);
 $("s0").textContent = "Inizio: "+dlab(D.totals.first);
 $("s1").textContent = "Gara: "+dlab(G.date);
+
+/* ---------------- piano coach ---------------- */
+if (D.coach){
+  $("coachsec").hidden=false;
+  const GG=["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
+  const ST={done:["good","Fatta"],missed:["bad","Saltata"],today:["warn","Oggi"],todo:["neutral","Da fare"]};
+  const showWeek=k=>{
+    const w=D.coach[k]; const all=w.days.flatMap(d=>d.sessions), done=all.filter(s=>s.status=="done").length;
+    $("csub").textContent=`${w.label}${w.note? " · "+w.note:""} · ${done} di ${all.length} sedute fatte`;
+    [...$("ctabs").children].forEach((b,i)=>b.setAttribute("aria-pressed",i==k));
+    $("cdays").innerHTML=w.days.map((d,i)=>{
+      const sess=d.sessions.map(s=>`<div class="sess" style="border-left-color:var(--${s.sport})">
+        <div class="t">${s.slot}</div><div class="n">${s.text}</div>${chip(ST[s.status][0],ST[s.status][1])}
+        ${s.did? `<div class="did">${s.did.km? n1(s.did.km,2)+" km · ":""}${hms(s.did.sec)}${s.did.hr? " · "+s.did.hr+" bpm":""}</div>`:""}
+        ${s.detail&&s.detail.length? `<details><summary>Dettaglio ${s.key}</summary><ul>${s.detail.map(x=>`<li>${x}</li>`).join("")}</ul></details>`:""}</div>`).join("");
+      const ex=d.extra.map(e=>`<div class="rest">+ ${SP[e.sport]} extra${e.km? " "+n1(e.km)+" km":""}</div>`).join("");
+      return `<div class="day${d.date==D.today?" today":""}"><h4>${GG[i]} <span>${dlab(d.date)}</span></h4>${sess||'<div class="rest">Riposo</div>'}${ex}</div>`;
+    }).join("");
+  };
+  $("ctabs").innerHTML=D.coach.length>1? D.coach.map((w,i)=>`<button type="button" id="cw${i}">${i==0?"Questa settimana":"Prossima"}</button>`).join(""):"";
+  [...$("ctabs").children].forEach((b,i)=>b.addEventListener("click",()=>showWeek(i)));
+  showWeek(0);
+}
 
 /* ---------------- tappe ---------------- */
 $("tests").innerHTML = D.tests.map(t=>{

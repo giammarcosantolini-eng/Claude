@@ -237,7 +237,57 @@ def main():
     totals = {"n": len(A), "km": round(sum(a["km"] for a in A)), "h": round(sum(a["sec"] for a in A) / 3600),
               "first": first.isoformat()}
 
+    # ---------------------------------------------------- piano del coach
+    coach = None
+    plan = read_json(os.path.join(DATA, "coach", "plan.json"))
+    strength = read_json(os.path.join(DATA, "coach", "strength.json"), {}) or {}
+    if plan:
+        lib = dict(plan.get("library", {}))
+        lib.update(strength)
+
+        def sport_of(t):
+            t = t.lower()
+            if "nuoto" in t: return "swim"
+            if "bike" in t or "cycling" in t or "bici" in t: return "bike"
+            if "corsa" in t or "test" in t or "km" in t and "nuoto" not in t: return "run"
+            if "preparazione" in t: return "gym"
+            return "other"
+
+        done_by_day = {}
+        for a in A:
+            done_by_day.setdefault(a["day"].isoformat(), []).append(a)
+        out_weeks = []
+        for w in plan["weeks"]:
+            ws = dt.date.fromisoformat(w["start"])
+            if ws < monday(today) or ws > monday(today) + dt.timedelta(days=7):
+                continue
+            days_out = []
+            for k, blocks in enumerate(w["days"]):
+                day = ws + dt.timedelta(days=k)
+                avail = list(done_by_day.get(day.isoformat(), []))
+                sess = []
+                for b in blocks:
+                    sp = sport_of(b["text"])
+                    key = (b["codes"] or [None])[0]
+                    if not key and "upper" in b["text"].lower(): key = "Upper"
+                    if not key and "lower" in b["text"].lower(): key = "Lower"
+                    match = next((a for a in avail if a["sport"] == sp or (sp == "bike" and a["sport"] == "multi")), None)
+                    if match:
+                        avail.remove(match)
+                    if match: st = "done"
+                    elif day < today: st = "missed"
+                    elif day == today: st = "today"
+                    else: st = "todo"
+                    sess.append({"slot": b["slot"], "text": b["text"], "sport": sp, "key": key,
+                                 "detail": lib.get(key, []) if key else [], "status": st,
+                                 "did": {"km": round(match["km"], 2), "sec": round(match["sec"]), "hr": match["hr"]} if match else None})
+                extra = [{"sport": a["sport"], "km": round(a["km"], 2), "sec": round(a["sec"])} for a in avail]
+                days_out.append({"date": day.isoformat(), "sessions": sess, "extra": extra})
+            out_weeks.append({"label": w["label"], "note": w.get("note", ""), "start": w["start"], "days": days_out})
+        coach = out_weeks or None
+
     payload = {
+        "coach": coach,
         "today": today.isoformat(), "built": dt.datetime.now().strftime("%d/%m/%Y %H:%M"),
         "goal": GOAL, "tests": TESTS, "weekly": weekly, "daily": daily, "hst": hst,
         "now": now, "records": records, "totals": totals,
