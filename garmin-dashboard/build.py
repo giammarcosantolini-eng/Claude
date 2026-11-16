@@ -542,7 +542,8 @@ def main():
         d = a["day"].isoformat()
         if a["sport"] == "run" and a["km"] > 2:
             hrpts["run"].append([d, a["hr"], round(a["mov"] / a["km"]), round(a["km"], 1), a["name"]])
-        elif a["sport"] == "swim" and a["km"] > 0.5:
+        elif a["type"] == "lap_swimming" and a["km"] > 0.5 and a["mov"] >= 0.8 * a["sec"]:
+            # solo sedute quasi continue: con molte pause il battito medio crolla e falsa il confronto
             hrpts["swim"].append([d, a["hr"], round(a["mov"] / (a["km"] * 10)), round(a["km"] * 1000), a["name"]])
         elif a["sport"] == "bike" and (a["np"] or a["pw"]):
             hrpts["bike"].append([d, a["hr"], round(a["pw"] or a["np"]), round(a["km"], 1), a["name"]])
