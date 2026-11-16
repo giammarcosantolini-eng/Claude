@@ -93,6 +93,7 @@ def main():
             "load": a.get("activityTrainingLoad") or 0,
             "kcal": a.get("calories") or 0,
             "np": a.get("normPower"),
+            "pw": a.get("avgPower"),
             # scarto i parziali impossibili (errori GPS): meno di 2:30/km
             "f1k": a.get("fastestSplit_1000") if (a.get("fastestSplit_1000") or 0) >= 150 else None,
             "f5k": a.get("fastestSplit_5000") if (a.get("fastestSplit_5000") or 0) >= 750 else None,
@@ -533,7 +534,21 @@ def main():
         races.append({"date": r["date"], "name": (r.get("name") or "").replace(" Multisport", ""), "legs": legs})
     races.sort(key=lambda r: r["date"])
 
+    # punti battito / prestazione per i grafici di tendenza
+    hrpts = {"run": [], "swim": [], "bike": []}
+    for a in A:
+        if not a["hr"] or not a["mov"]:
+            continue
+        d = a["day"].isoformat()
+        if a["sport"] == "run" and a["km"] > 2:
+            hrpts["run"].append([d, a["hr"], round(a["mov"] / a["km"]), round(a["km"], 1), a["name"]])
+        elif a["sport"] == "swim" and a["km"] > 0.5:
+            hrpts["swim"].append([d, a["hr"], round(a["mov"] / (a["km"] * 10)), round(a["km"] * 1000), a["name"]])
+        elif a["sport"] == "bike" and (a["np"] or a["pw"]):
+            hrpts["bike"].append([d, a["hr"], round(a["pw"] or a["np"]), round(a["km"], 1), a["name"]])
+
     payload = {
+        "hrpts": hrpts,
         "runmodel": runmodel if plan else None,
         "races": races,
         "coach": coach, "nutrition": nutrition,

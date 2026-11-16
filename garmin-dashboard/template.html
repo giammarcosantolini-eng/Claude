@@ -169,6 +169,11 @@ footer{font-size:12.5px;color:var(--muted)}
   </section>
 
   <section>
+    <div><h2>Passo e battito</h2><p class="sub">A parità di battito vai più forte? Ogni punto è una seduta: in orizzontale il battito medio (bpm), in verticale passo o watt. La linea tratteggiata è la tendenza fino a 6 settimane fa, quella piena le ultime 6 settimane: se la linea piena sta sopra, a parità di battito vai più forte. Nel nuoto il battito dal polso è poco preciso: guarda la tendenza, non il singolo punto.</p></div>
+    <div class="grid g3" id="hrcharts"></div>
+  </section>
+
+  <section>
     <div><h2>Questa settimana</h2><p class="sub" id="wsub"></p></div>
     <div class="card"><div class="tbl"><table id="wtable"></table></div></div>
     <div class="card"><div class="ctitle"><div><h3>Ore di allenamento per settimana</h3><p>Per sport. Tocca una barra per i dettagli.</p></div></div><div class="legend" id="hleg"></div><div class="chart" id="hours"></div></div>
@@ -396,6 +401,42 @@ function barChart(host, o){
   hit.addEventListener("pointermove",move); hit.addEventListener("pointerdown",move);
   hit.addEventListener("pointerleave",()=>{ tip.hidden=true; groups.forEach(gr=>gr.setAttribute("opacity",1)); });
 }
+function fit(pts){ const n=pts.length; if(n<4) return null; const mx=pts.reduce((p,q)=>p+q[0],0)/n, my=pts.reduce((p,q)=>p+q[1],0)/n;
+  const sxx=pts.reduce((p,q)=>p+(q[0]-mx)**2,0); if(!sxx) return null; const b=pts.reduce((p,q)=>p+(q[0]-mx)*(q[1]-my),0)/sxx; return {a:my-b*mx,b,lo:Math.min(...pts.map(q=>q[0])),hi:Math.max(...pts.map(q=>q[0]))}; }
+function scatterChart(host,o){
+  const W=Math.max(260,host.clientWidth), H=230, m={l:46,r:12,t:10,b:30};
+  host.innerHTML=""; const P=o.pts; if(P.length<3){ host.innerHTML='<p class="muted">Servono più sedute con il battito.</p>'; return; }
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":o.aria},host);
+  const xs=P.map(p=>p[1]), ys=P.map(p=>p[2]);
+  let x0=Math.min(...xs)-3, x1=Math.max(...xs)+3, y0=Math.min(...ys), y1=Math.max(...ys); const pad=(y1-y0)*.1||5; y0-=pad; y1+=pad;
+  const X=v=>m.l+(v-x0)/(x1-x0)*(W-m.l-m.r);
+  const Y=v=>o.invert? m.t+(v-y0)/(y1-y0)*(H-m.t-m.b) : H-m.b-(v-y0)/(y1-y0)*(H-m.t-m.b);
+  let yt=ticks(y0,y1,4).out;
+  if(o.invert){ const st=[5,10,15,20,30,60].find(s=>(y1-y0)/s<=7)||60; yt=[]; for(let v=Math.ceil(y0/st)*st; v<=y1; v+=st) yt.push(v); }
+  yt.forEach(v=>{ if(v<y0||v>y1) return; el("line",{x1:m.l,x2:W-m.r,y1:Y(v),y2:Y(v),stroke:css("--grid")},svg); const t=el("text",{x:m.l-8,y:Y(v)+4,"text-anchor":"end"},svg); t.textContent=o.yfmt(v); });
+  ticks(x0,x1,5).out.forEach(v=>{ if(v<x0||v>x1) return; const t=el("text",{x:X(v),y:H-8,"text-anchor":"middle"},svg); t.textContent=v; });
+  const cut=new Date(pd(D.today)); cut.setDate(cut.getDate()-42); const isNew=p=>pd(p[0])>=cut;
+  const col=css(o.color);
+  const fo=fit(P.filter(p=>!isNew(p)).map(p=>[p[1],p[2]])), fn=fit(P.filter(isNew).map(p=>[p[1],p[2]]));
+  const dots=P.map(p=>el("circle",{cx:X(p[1]),cy:Y(p[2]),r:4.5,fill:col,"fill-opacity":isNew(p)?.9:.28,stroke:css("--card"),"stroke-width":1.5},svg));
+  [[fo,"6 3",css("--ink2")],[fn,"",col]].forEach(([f,dash,c])=>{ if(!f) return; const a=Math.max(f.lo,x0), z=Math.min(f.hi,x1);
+    el("line",{x1:X(a),y1:Y(f.a+f.b*a),x2:X(z),y2:Y(f.a+f.b*z),stroke:c,"stroke-width":2.5,"stroke-dasharray":dash,"stroke-linecap":"round"},svg); });
+  const tip=tipBox(host);
+  svg.addEventListener("pointermove",ev=>{ const r=svg.getBoundingClientRect(), px=(ev.clientX-r.left)*W/r.width, py=(ev.clientY-r.top)*H/r.height;
+    let bi=-1,bd=1e9; P.forEach((p,i)=>{ const d=(X(p[1])-px)**2+(Y(p[2])-py)**2; if(d<bd){bd=d;bi=i;} });
+    dots.forEach((d,i)=>d.setAttribute("r",i==bi?7:4.5)); if(bd>900){ tip.hidden=true; return; }
+    const p=P[bi]; tip.innerHTML=`<b>${dlabY(p[0])}</b><div class="muted">${p[4]||""}</div><div class="r"><span>Battito</span><b>${p[1]} bpm</b></div><div class="r"><span>${o.ylab}</span><b>${o.yfmt(p[2])}${o.unit}</b></div><div class="r"><span>${o.dlab}</span><b>${p[3].toLocaleString("it-IT")}</b></div>`;
+    placeTip(host,tip,X(p[1])*r.width/W,Y(p[2])*r.height/H); });
+  svg.addEventListener("pointerleave",()=>{ tip.hidden=true; dots.forEach(d=>d.setAttribute("r",4.5)); });
+  return {fo,fn};
+}
+const HRC=[
+  {id:"hr-run",k:"run",t:"Corsa: passo e battito",color:"--run",invert:true,yfmt:pace,unit:" /km",ylab:"Passo",dlab:"Km",ref:150,better:"lower",fmtd:v=>Math.round(Math.abs(v))+" s/km"},
+  {id:"hr-swim",k:"swim",t:"Nuoto: passo e battito",color:"--swim",invert:true,yfmt:pace,unit:" /100 m",ylab:"Passo",dlab:"Metri",ref:135,better:"lower",fmtd:v=>Math.round(Math.abs(v))+" s/100 m"},
+  {id:"hr-bike",k:"bike",t:"Bici: watt e battito",color:"--bike",invert:false,yfmt:v=>n0(v),unit:" W",ylab:"Potenza media",dlab:"Km",ref:135,better:"higher",fmtd:v=>Math.round(Math.abs(v))+" W"},
+];
+$("hrcharts").innerHTML=HRC.map(c=>`<div class="card"><div class="ctitle"><div><h3>${c.t}</h3><p id="${c.id}-s"></p></div></div>
+  <div class="legend"><span><i class="ln" style="background:var(--ink2)"></i>Prima</span><span><i class="ln" style="background:var(${c.color})"></i>Ultime 6 settimane</span></div><div class="chart" id="${c.id}"></div></div>`).join("");
 function legend(id, items){ $(id).innerHTML=items.map(([c,t,line])=>`<span>${line?`<i class="ln" style="background:var(${c})"></i>`:`<i class="dot" style="background:var(${c})"></i>`}${t}</span>`).join(""); }
 
 /* ---------------- dati settimanali ---------------- */
@@ -457,6 +498,12 @@ if(planK){
 
 function render(){
   PERF.forEach(p=>lineChart($(p.id),{labels:WL,series:[{name:p.t.split(" · ")[1],values:p.v,color:p.c,dots:true,join:true}],yfmt:p.f,invert:p.inv,xfmt:wkLab,height:180,aria:p.t}));
+  HRC.forEach(c=>{ const f=scatterChart($(c.id),{pts:(D.hrpts||{})[c.k]||[],color:c.color,invert:c.invert,yfmt:c.yfmt,unit:c.unit,ylab:c.ylab,dlab:c.dlab,aria:c.t});
+    const s=$(c.id+"-s"); if(!s) return;
+    if(f&&f.fo&&f.fn){ const ref=Math.round(Math.max(Math.max(f.fo.lo,f.fn.lo),Math.min(c.ref,Math.min(f.fo.hi,f.fn.hi))));
+      const a=f.fo.a+f.fo.b*ref, z=f.fn.a+f.fn.b*ref, d=z-a, good=c.better=="lower"? d<0:d>0;
+      s.innerHTML=`A ${ref} bpm: prima ${c.yfmt(a)}${c.unit}, ora ${c.yfmt(z)}${c.unit}. ${Math.abs(d)<1?chip("neutral","Stabile"):chip(good?"good":"bad",(good?"Meglio di ":"Peggio di ")+c.fmtd(d))}`; }
+    else s.textContent="Servono più sedute per confrontare i due periodi."; });
   barChart($("hours"),{labels:WL,stacks:ORDER.filter(s=>Wk.sports[s].h.some(v=>v>0)).map(s=>({name:SP[s],color:"--"+s,values:Wk.sports[s].h,
       extra:i=>{const k=Wk.sports[s].km[i]; return (k?n1(k)+" km · ":"")+Wk.sports[s].n[i]+(Wk.sports[s].n[i]==1?" seduta":" sedute");}})),
     yfmt:v=>n0(v)+"h", tfmt:hm, xfmt:wkLab, aria:"Ore di allenamento per settimana"});
