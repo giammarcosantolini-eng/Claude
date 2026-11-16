@@ -124,6 +124,7 @@ td .delta{font-size:12px;margin-left:6px}
 .pace{font-size:13px;color:var(--ink);background:color-mix(in srgb,var(--run) 12%,var(--card));border-radius:8px;padding:8px 10px;line-height:1.45}
 .pace>b{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--run);margin-bottom:3px;filter:brightness(.8)}
 .pace ul{margin:0;padding-left:16px;display:grid;gap:3px}
+.zt{display:inline-block;font-size:11.5px;font-weight:600;color:var(--swim);background:color-mix(in srgb,var(--swim) 12%,var(--card));border-radius:5px;padding:0 5px;white-space:nowrap}
 .mv{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:1px 7px;margin-left:4px}
 .clash{font-size:12.5px;color:var(--ink);background:var(--warn-bg);border-radius:8px;padding:7px 9px;line-height:1.4}
 .clash b{display:block;color:var(--warn);font-size:12px}
@@ -150,6 +151,7 @@ footer{font-size:12.5px;color:var(--muted)}
   <section id="coachsec" hidden>
     <div class="ctitle"><div><h2>Il piano del coach</h2><p class="sub" id="csub"></p></div><div id="ctabs" class="tabs"></div></div>
     <div class="pri" id="cpri"></div>
+    <div class="card" id="szcard" hidden><div class="ctitle"><div><h3>Le tue zone del nuoto</h3><p id="szsub"></p></div></div><div class="tbl"><table id="sztable"></table></div></div>
     <div class="days" id="cdays"></div>
   </section>
 
@@ -238,11 +240,14 @@ $("s0").textContent = "Inizio: "+dlab(D.totals.first);
 $("s1").textContent = "Gara: "+dlab(G.date);
 
 /* ---------------- piano coach ---------------- */
+const SZ=D.swimzones;
+function zp(k){ const z=SZ&&SZ.zones[k]; if(!z) return ""; return z.fast? `${pace(z.fast)}–${pace(z.slow)}`:`sotto ${pace(z.slow)}`; }
+function zoneTag(txt){ if(!SZ) return txt; return txt.replace(/\b(A1|A2|B1|B2|C1|C2)\b(?![^<]*>)/g,(m)=>`${m} <span class="zt">${zp(m)}/100</span>`); }
 function woList(lines){
   let html="", open=false;
   lines.forEach(l=>{ const txt=l.replace(/\s*·\s*$/,"");
     if(/:\s*$/.test(txt) && txt.length<30){ if(open){html+="</ul>";open=false;} html+=`<div class="wh">${txt.replace(/:\s*$/,"")}</div>`; return; }
-    if(!open){html+="<ul>";open=true;} html+=`<li>${txt.replace(/^(\d+\s*x\s*[^·(]*)/i,"<strong>$1</strong>")}</li>`; });
+    if(!open){html+="<ul>";open=true;} html+=`<li>${zoneTag(txt.replace(/^(\d+\s*x\s*[^·(]*)/i,"<strong>$1</strong>"))}</li>`; });
   if(open) html+="</ul>"; return html;
 }
 const PRI=(function(){
@@ -282,6 +287,12 @@ if (D.coach){
   [...$("ctabs").children].forEach((b,i)=>b.addEventListener("click",()=>showWeek(i)));
   showWeek(0);
 }
+
+if(SZ){ $("szcard").hidden=false;
+  $("szsub").textContent=`Calcolate dal tuo ritmo di soglia (B1) di circa ${pace(SZ.css)}/100 m. ${SZ.source}`;
+  const rep=(k,m)=>{ const z=SZ.zones[k]; const f=s=>{s=Math.round(s*m/100); return s>=60? Math.floor(s/60)+"'"+String(s%60).padStart(2,"0")+"''" : s+"''";}; return z.fast? f(z.fast)+"–"+f(z.slow) : "sotto "+f(z.slow); };
+  $("sztable").innerHTML=`<thead><tr><th>Zona</th><th>Passo /100 m</th><th>50 m</th><th>100 m</th><th>200 m</th><th style="text-align:left">A cosa serve</th></tr></thead><tbody>`+
+    Object.keys(SZ.zones).map(k=>`<tr><td><strong>${k}</strong></td><td>${zp(k)}</td><td>${rep(k,50)}</td><td>${rep(k,100)}</td><td>${k.startsWith("C")?"–":rep(k,200)}</td><td style="text-align:left;white-space:normal">${SZ.zones[k].desc}</td></tr>`).join("")+`</tbody>`; }
 
 /* ---------------- tappe ---------------- */
 $("tests").innerHTML = D.tests.map(t=>{

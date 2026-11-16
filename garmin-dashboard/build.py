@@ -548,7 +548,16 @@ def main():
         elif a["sport"] == "bike" and (a["np"] or a["pw"]):
             hrpts["bike"].append([d, a["hr"], round(a["pw"] or a["np"]), round(a["km"], 1), a["name"]])
 
+    sz = read_json(os.path.join(DATA, "coach", "swimzones.json"))
+    swimzones = None
+    if sz:
+        css = sz["css"]
+        swimzones = {"css": css, "source": sz.get("source", ""), "zones": {}}
+        for k, (lo, hi, desc) in sz["zones"].items():
+            swimzones["zones"][k] = {"fast": css + lo if lo > -50 else None, "slow": css + hi, "desc": desc}
+
     payload = {
+        "swimzones": swimzones,
         "hrpts": hrpts,
         "runmodel": runmodel if plan else None,
         "races": races,
