@@ -245,6 +245,7 @@ def main():
     # ---------------------------------------------------- piano del coach
     coach = None
     nutrition = None
+    runmodel = None
     plan = read_json(os.path.join(DATA, "coach", "plan.json"))
     strength = read_json(os.path.join(DATA, "coach", "strength.json"), {}) or {}
     if plan:
@@ -431,6 +432,62 @@ def main():
                                  "fuel_kcal": sum(x["fkcal"] for x in sess)})
             out_weeks.append({"label": w["label"], "note": w.get("note", ""), "start": w["start"], "days": days_out})
         coach = out_weeks or None
+        # ---- ritmi di corsa stimati: modello passo/battito dalle corse recenti + gare
+        cut = today - dt.timedelta(weeks=10)
+        pts = [(a["hr"], a["mov"] / a["km"]) for a in A
+               if a["sport"] == "run" and a["day"] >= cut and a["km"] > 3 and a["hr"] and a["mov"]]
+        rp = None
+        if len(pts) >= 8:
+            n = len(pts); mx = sum(p[0] for p in pts) / n; my = sum(p[1] for p in pts) / n
+            sb = sum((p[0] - mx) * (p[1] - my) for p in pts) / (sum((p[0] - mx) ** 2 for p in pts) or 1)
+            sa = my - sb * mx
+            at_hr = lambda h: sa + sb * h
+            b5 = now["best5k"]
+            p5 = b5 / 5 if b5 else at_hr(170)
+            hm = (b5 * (21.0975 / 5) ** 1.06) / 21.0975 if b5 else at_hr(165)
+            k10 = (b5 * 2 ** 1.06) / 10 if b5 else at_hr(170)
+            g10 = TESTS[0]["target"] / TESTS[0]["km"]
+            g5 = TESTS[0]["target"] * (5 / 10) ** 1.06 / 5
+            ghm = TESTS[1]["target"] / TESTS[1]["km"]
+            rp = {"easy": (at_hr(145), at_hr(135)), "hm": hm, "k10": k10, "p5": p5, "g10": g10, "g5": g5, "ghm": ghm,
+                  "race703": GOAL["split"]["run"] / GOAL["dist"]["run"], "hr703": (GOAL["split"]["run"] / GOAL["dist"]["run"] - sa) / sb,
+                  "n": len(pts)}
+
+        def P(s):
+            s = round(s)
+            return "%d:%02d" % (s // 60, s % 60)
+
+        def run_paces(x):
+            if not rp or x["sport"] != "run":
+                return None
+            k, t = x["key"], x["text"].lower()
+            e = "%s–%s/km" % (P(rp["easy"][0]), P(rp["easy"][1]))
+            if k in ("C1", "C4"):
+                return ["Facile a 140 bpm: dalle tue corse corrisponde a circa %s." % e,
+                        "Se il battito sale sopra 145, rallenta: conta il battito, non il passo."] + \
+                       (["Allunghi: progressivi, ultimi 20'' veloci ma sciolti (circa %s/km), recupero camminando." % P(rp["p5"] - 15)] if k == "C1" else [])
+            if k == "C2":
+                return ["Riscaldamento a circa %s." % e,
+                        "8 km medio a 170-175 bpm: oggi circa %s–%s/km (il tuo ritmo da mezza è circa %s)." % (P(rp["hm"] - 10), P(rp["hm"] - 2), P(rp["hm"])),
+                        "Obiettivo Roma-Ostia sotto 1:30: %s/km. Se lo tieni sotto i 175 bpm sei in linea." % P(rp["ghm"])]
+            if k == "C3":
+                return ["Riscaldamento a circa %s." % e,
+                        "8 x 1000 oggi: %s–%s/km (dal tuo miglior 5 km, %s/km). Battito atteso a fine ripetuta 175-185." % (P(rp["p5"] - 8), P(rp["p5"] - 2), P(rp["p5"])),
+                        "Per il 10 km sotto i 40' servono ripetute a %s–%s/km: provale nelle ultime 2." % (P(rp["g5"] - 5), P(rp["g5"])),
+                        "Il coach indica 3:30-3:40/km: è più veloce del tuo km migliore (3:55). Chiedigli conferma.",
+                        "Recupero 2'30: camminata o corsa lentissima, il battito deve scendere sotto 130."]
+            if k == "C5":
+                return ["Variazioni: 2' forti a circa %s/km (ritmo 10 km), 2' piano a circa %s/km." % (P(rp["k10"]), P(rp["easy"][1]))]
+            if "test" in t:
+                return ["Stima attuale sui 10 km: %s/km. Primi 3 km a %s, poi %s, ultimi 2 km a tutta." % (P(rp["k10"]), P(rp["k10"] + 3), P(rp["k10"] - 2)),
+                        "Obiettivo di gennaio sotto i 40': %s/km. Il test ti dice quanto manca." % P(rp["g10"])]
+            return ["Facile: circa %s." % e]
+
+        for w in coach or []:
+            for d in w["days"]:
+                for x in d["sessions"]:
+                    x["paces"] = run_paces(x)
+        runmodel = rp
         track = read_json(os.path.join(DATA, "coach", "track.json"))
         if track and coach:
             for w in coach:
@@ -454,6 +511,7 @@ def main():
     races.sort(key=lambda r: r["date"])
 
     payload = {
+        "runmodel": runmodel if plan else None,
         "races": races,
         "coach": coach, "nutrition": nutrition,
         "today": today.isoformat(), "built": dt.datetime.now().strftime("%d/%m/%Y %H:%M"),
