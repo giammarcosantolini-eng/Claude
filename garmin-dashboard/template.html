@@ -250,7 +250,7 @@ if (D.coach){
   const ST={done:["good","Fatta"],missed:["bad","Saltata"],today:["warn","Oggi"],todo:["neutral","Da fare"]};
   const pt=PRI.map((p,i)=>`<li><strong>${SP[p.k]}</strong>: ${p.gap>0? "ti manca il "+n1(p.gap*100,0)+"% al ritmo gara":"sei già al ritmo gara"+(p.k=="run"?" del 70.3; la qualità serve per il 10 km sotto i 40'":"")}</li>`).join("");
   $("cpri").innerHTML=`<b>Dove serve lavorare di più</b><ol>${pt}</ol><span>Calcolato dalle ultime 6 settimane. Quando una seduta va spostata, proteggo prima queste.</span>`;
-  const isPri=s=>PRI.length&&PRI[0].gap>0&&(s.sport==PRI[0].k||(PRI[1]&&PRI[1].gap>0&&s.sport==PRI[1].k))&&!/facil/i.test(s.text);
+  const isPri=s=>PRI.some(p=>p.gap>0.05&&p.k==s.sport)&&!/facil/i.test(s.text);
   const showWeek=k=>{
     const w=D.coach[k]; const all=w.days.flatMap(d=>d.sessions), done=all.filter(s=>s.status=="done").length;
     $("csub").textContent=`${w.label}${w.note? " · "+w.note:""} · ${done} di ${all.length} sedute fatte`;
