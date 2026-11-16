@@ -1,0 +1,392 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Diario Jesolo 70.3</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: diario di allenamento, una colonna di "pagine" che vanno dal traguardo al dettaglio */
+:root{
+  --bg:#f5f7f8; --card:#ffffff; --ink:#0f1a22; --ink2:#46545e; --muted:#76858f; --line:#e1e7eb; --grid:#edf1f3;
+  --accent:#0b6e8a; --accent-soft:#e3f1f5;
+  --swim:#2a78d6; --bike:#eb6834; --run:#1baf7a; --gym:#eda100; --multi:#e87ba4; --other:#9aa6ad;
+  --good:#0a7d0a; --good-bg:#e5f4e5; --warn:#a86a00; --warn-bg:#fdf1d8; --bad:#c03434; --bad-bg:#fbe7e7;
+  --band:rgba(27,175,122,.12);
+  --f-display:"Archivo","Helvetica Neue",Arial,sans-serif; --f-body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e1418; --card:#161f25; --ink:#edf2f4; --ink2:#b5c2c9; --muted:#8696a0; --line:#25313a; --grid:#1f2a31;
+  --accent:#55b6d2; --accent-soft:#16323c;
+  --swim:#3987e5; --bike:#d95926; --run:#199e70; --gym:#c98500; --multi:#d55181; --other:#6f7c84;
+  --good:#3cc23c; --good-bg:#14301a; --warn:#f0b43a; --warn-bg:#3a2d10; --bad:#ef7070; --bad-bg:#3a1a1a;
+  --band:rgba(25,158,112,.18); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1418; --card:#161f25; --ink:#edf2f4; --ink2:#b5c2c9; --muted:#8696a0; --line:#25313a; --grid:#1f2a31;
+  --accent:#55b6d2; --accent-soft:#16323c;
+  --swim:#3987e5; --bike:#d95926; --run:#199e70; --gym:#c98500; --multi:#d55181; --other:#6f7c84;
+  --good:#3cc23c; --good-bg:#14301a; --warn:#f0b43a; --warn-bg:#3a2d10; --bad:#ef7070; --bad-bg:#3a1a1a;
+  --band:rgba(25,158,112,.18); color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);font-variant-numeric:tabular-nums}
+.wrap{max-width:1080px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:36px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:clamp(28px,6vw,44px);font-weight:800;line-height:1.05}
+h2{font-size:22px;font-weight:700}
+h3{font-size:15px;font-weight:600}
+.eyebrow{font:600 12px/1 var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.sub{color:var(--ink2);margin:6px 0 0;max-width:65ch}
+.muted{color:var(--muted)}
+section{display:grid;gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;min-width:0}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
+/* hero */
+.hero{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));align-items:end}
+.count{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.count b{font:800 clamp(56px,14vw,96px)/.9 var(--f-display);color:var(--accent);letter-spacing:-.03em}
+.count span{font:600 18px var(--f-display);color:var(--ink2)}
+.meta{display:flex;gap:18px;flex-wrap:wrap;color:var(--ink2);font-size:14px}
+.meta strong{color:var(--ink);font-weight:600}
+.season{height:8px;background:var(--grid);border-radius:99px;overflow:hidden;margin-top:6px}
+.season i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.season-l{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:4px}
+/* tile */
+.tile{display:grid;gap:6px;align-content:start}
+.tile .k{font-size:13px;color:var(--ink2);display:flex;align-items:center;gap:8px}
+.tile .v{font:700 28px/1.1 var(--f-display)}
+.tile .v small{font:500 14px var(--f-body);color:var(--muted);margin-left:4px}
+.tile .d{font-size:13px;color:var(--ink2)}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
+.chip{display:inline-flex;align-items:center;gap:6px;font:600 12px/1 var(--f-body);padding:5px 9px;border-radius:99px;width:max-content;max-width:100%}
+.chip.good{background:var(--good-bg);color:var(--good)} .chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.bad{background:var(--bad-bg);color:var(--bad)} .chip.neutral{background:var(--grid);color:var(--ink2)}
+.bar2{height:6px;border-radius:99px;background:var(--grid);overflow:hidden} .bar2 i{display:block;height:100%;border-radius:99px}
+/* charts */
+.chart{position:relative;width:100%;min-width:0}
+.chart svg{display:block;width:100%;overflow:visible}
+.chart text{font:11px var(--f-body);fill:var(--muted)}
+.ctitle{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:8px}
+.ctitle p{margin:2px 0 0;font-size:13px;color:var(--ink2)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--ink2);margin-bottom:6px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .ln{width:14px;height:2px;border-radius:2px;display:inline-block}
+.tip{position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--line);box-shadow:0 6px 20px rgba(0,0,0,.12);border-radius:10px;padding:8px 10px;font-size:12.5px;line-height:1.45;color:var(--ink);white-space:nowrap;z-index:5}
+.tip b{font-weight:600}
+.tip .r{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.tip .r span:first-child{display:inline-flex;align-items:center;gap:6px;color:var(--ink2)}
+/* table */
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:14px}
+th,td{text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font:600 12px var(--f-body);color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+td .delta{font-size:12px;margin-left:6px}
+.up{color:var(--good)} .down{color:var(--bad)}
+/* records */
+.rec{display:grid;gap:4px}
+.rec .k{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.rec .v{font:700 24px/1.15 var(--f-display)}
+.rec .d{font-size:13px;color:var(--ink2);overflow-wrap:anywhere}
+.note{font-size:13px;color:var(--ink2);background:var(--accent-soft);border-radius:10px;padding:10px 12px}
+footer{font-size:12.5px;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.season i{transition:width .8s ease}}
+</style>
+
+<div class="wrap" id="app">
+  <header class="hero">
+    <div>
+      <div class="eyebrow">Diario di allenamento</div>
+      <h1 id="gname"></h1>
+      <p class="sub" id="gdesc"></p>
+    </div>
+    <div>
+      <div class="count"><b id="days"></b><span id="dlabel"></span></div>
+      <div class="season"><i id="seasonbar" style="width:0"></i></div>
+      <div class="season-l"><span id="s0"></span><span id="s1"></span></div>
+    </div>
+  </header>
+
+  <section>
+    <div><h2>Le tappe di verifica</h2><p class="sub">Stima calcolata dal tuo miglior 5 km delle ultime 8 settimane (formula di Riegel). È un'indicazione, non una previsione certa.</p></div>
+    <div class="grid g2" id="tests"></div>
+  </section>
+
+  <section>
+    <div><h2>Il ritmo che serve per le 5:30</h2><p class="sub">Una possibile ripartizione del tuo obiettivo, confrontata con il ritmo medio dei tuoi allenamenti nelle ultime 6 settimane.</p></div>
+    <div class="grid g3" id="splits"></div>
+  </section>
+
+  <section>
+    <div><h2>Come stai migliorando</h2><p class="sub">Settimana per settimana. Nei grafici del passo, più in alto vuol dire più veloce. Il riquadro confronta le ultime 4 settimane con le 4 precedenti.</p></div>
+    <div class="grid g2" id="perf"></div>
+  </section>
+
+  <section>
+    <div><h2>Questa settimana</h2><p class="sub" id="wsub"></p></div>
+    <div class="card"><div class="tbl"><table id="wtable"></table></div></div>
+    <div class="card"><div class="ctitle"><div><h3>Ore di allenamento per settimana</h3><p>Per sport. Tocca una barra per i dettagli.</p></div></div><div class="legend" id="hleg"></div><div class="chart" id="hours"></div></div>
+  </section>
+
+  <section>
+    <div><h2>Carico e recupero</h2><p class="sub">Stai assorbendo il lavoro? Carico in salita con HRV stabile e battito a riposo basso è il segnale buono.</p></div>
+    <div class="grid g2">
+      <div class="card"><div class="ctitle"><div><h3>Carico di allenamento settimanale</h3><p>Somma del carico Garmin delle sedute.</p></div></div><div class="chart" id="load"></div></div>
+      <div class="card"><div class="ctitle"><div><h3>HRV notturna</h3><p id="hrvsub">Media della notte, media a 7 giorni e la tua fascia di equilibrio.</p></div></div><div class="legend" id="hrvleg"></div><div class="chart" id="hrv"></div></div>
+      <div class="card"><div class="ctitle"><div><h3>Battito a riposo</h3><p>Battiti al minuto. Una salita di qualche battito per più giorni è un segnale di fatica.</p></div></div><div class="chart" id="rhr"></div></div>
+      <div class="card"><div class="ctitle"><div><h3>Sonno</h3><p>Ore dormite a notte e media a 7 giorni.</p></div></div><div class="legend" id="slleg"></div><div class="chart" id="sleep"></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div><h2>Energia</h2><p class="sub">Calorie consumate al giorno secondo Garmin.</p></div>
+    <div class="card"><div class="ctitle"><div><h3>Calorie consumate</h3><p>Totale giornaliero e media a 7 giorni.</p></div></div><div class="legend" id="kleg"></div><div class="chart" id="kcal"></div>
+      <p class="note">Le calorie assunte arriveranno qui quando aggiungiamo il piano della nutrizionista: vedrai consumate e assunte una accanto all'altra.</p></div>
+  </section>
+
+  <section>
+    <div><h2>Record e giornate più grandi</h2><p class="sub" id="totals"></p></div>
+    <div class="grid g4" id="records"></div>
+  </section>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>
+const D = /*__DATA__*/null;
+const $ = id => document.getElementById(id);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const MESI = ["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
+const SP = {swim:"Nuoto",bike:"Bici",run:"Corsa",gym:"Forza",multi:"Multisport",other:"Altro"};
+const ORDER = ["swim","bike","run","gym","multi","other"];
+const pd = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const dlab = s => { const d = pd(s); return d.getDate()+" "+MESI[d.getMonth()]; };
+const dlabY = s => { const d = pd(s); return d.getDate()+" "+MESI[d.getMonth()]+" "+d.getFullYear(); };
+const pace = s => s==null ? "–" : Math.floor(s/60)+":"+String(Math.round(s%60)).padStart(2,"0");
+const hms = s => { s=Math.round(s); const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=s%60; return (h? h+":"+String(m).padStart(2,"0") : m)+":"+String(x).padStart(2,"0"); };
+const hm = h => { const t=Math.round(h*60); return Math.floor(t/60)+"h "+String(t%60).padStart(2,"0")+"'"; };
+const n1 = (v,d=1) => v==null ? "–" : v.toLocaleString("it-IT",{minimumFractionDigits:d,maximumFractionDigits:d});
+const n0 = v => v==null ? "–" : Math.round(v).toLocaleString("it-IT");
+const daysTo = s => Math.round((pd(s) - pd(D.today)) / 864e5);
+const riegel = (t1,d1,d2) => t1*Math.pow(d2/d1,1.06);
+const avg = a => { const v=a.filter(x=>x!=null); return v.length ? v.reduce((p,c)=>p+c,0)/v.length : null; };
+const roll = (a,n) => a.map((_,i)=>avg(a.slice(Math.max(0,i-n+1),i+1)));
+function chip(cls, txt){ return `<span class="chip ${cls}">${txt}</span>`; }
+
+/* ---------------- hero ---------------- */
+const G = D.goal, left = daysTo(G.date);
+$("gname").textContent = G.name;
+$("gdesc").innerHTML = `${dlabY(G.date)} · obiettivo <strong>sotto le ${G.target.replace(/:00$/,"")}</strong> · 1,9 km nuoto, 90 km bici, 21,1 km corsa`;
+$("days").textContent = left;
+$("dlabel").textContent = `giorni a Jesolo · ${Math.floor(left/7)} settimane`;
+const t0 = pd(D.totals.first), t1 = pd(G.date), tn = pd(D.today);
+setTimeout(()=>{$("seasonbar").style.width = Math.min(100,Math.max(2,(tn-t0)/(t1-t0)*100)).toFixed(1)+"%";},50);
+$("s0").textContent = "Inizio: "+dlab(D.totals.first);
+$("s1").textContent = "Gara: "+dlab(G.date);
+
+/* ---------------- tappe ---------------- */
+$("tests").innerHTML = D.tests.map(t=>{
+  const dl = daysTo(t.date), est = D.now.best5k ? riegel(D.now.best5k,5,t.km) : null;
+  let st = chip("neutral","Serve un 5 km recente per la stima");
+  if (est){ const diff = (est - t.target)/t.km;
+    st = diff<=0 ? chip("good","In linea con l'obiettivo")
+       : diff<8 ? chip("warn",`Mancano ${Math.round(diff)} s/km`)
+       : chip("bad",`Mancano ${Math.round(diff)} s/km`); }
+  return `<div class="card tile">
+    <div class="k">${dl>0? dl+" giorni · "+dlabY(t.date) : "Fatta il "+dlabY(t.date)}</div>
+    <h3 style="font-size:18px">${t.name}</h3>
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px;margin:6px 0">
+      <div><div class="d">Obiettivo</div><div class="v">${hms(t.target)}</div><div class="d">${pace(t.target/t.km)} /km</div></div>
+      <div><div class="d">Stima attuale</div><div class="v">${est? hms(est):"–"}</div><div class="d">${est? pace(est/t.km)+" /km":""}</div></div>
+    </div>${st}</div>`;
+}).join("");
+
+/* ---------------- ripartizione 5:30 ---------------- */
+(function(){
+  const s=G.split, d=G.dist, N=D.now;
+  const rows = [
+    {k:"swim", lab:"Nuoto 1,9 km", tgt:s.swim/(d.swim*10), cur:N.swim_pace, unit:"/100 m", fmt:pace, better:"lower", tot:s.swim},
+    {k:"bike", lab:"Bici 90 km", tgt:d.bike/(s.bike/3600), cur:N.bike_kmh, unit:"km/h", fmt:v=>n1(v), better:"higher", tot:s.bike},
+    {k:"run",  lab:"Corsa 21,1 km", tgt:s.run/d.run, cur:N.run_pace, unit:"/km", fmt:pace, better:"lower", tot:s.run},
+  ];
+  $("splits").innerHTML = rows.map(r=>{
+    let st = chip("neutral","Nessun dato recente");
+    if (r.cur!=null){
+      const gap = r.better=="lower" ? (r.cur-r.tgt)/r.tgt : (r.tgt-r.cur)/r.tgt;
+      st = gap<=0 ? chip("good","Già a questo ritmo") : gap<.06 ? chip("warn","Vicino al ritmo gara") : chip("bad","Da costruire");
+    }
+    return `<div class="card tile"><div class="k"><span class="dot" style="background:var(--${r.k})"></span>${r.lab} · ${hms(r.tot)}</div>
+      <div class="v">${r.fmt(r.tgt)}<small>${r.unit}</small></div>
+      <div class="d">Ritmo gara. In allenamento: <strong>${r.cur!=null? r.fmt(r.cur)+" "+r.unit : "–"}</strong>${r.k=="bike"?" (uscite su strada > 20 km)":""}</div>${st}</div>`;
+  }).join("") + `<p class="muted" style="grid-column:1/-1;margin:0;font-size:13px">Con ${hms(G.split.t)} di cambi il totale fa ${G.target}. Il ritmo in allenamento è la media di tutte le sedute, lente comprese: è normale che sia più lento del ritmo gara.</p>`;
+})();
+
+/* ---------------- motore grafici ---------------- */
+const NS="http://www.w3.org/2000/svg";
+function el(tag, at, parent){ const e=document.createElementNS(NS,tag); for(const k in at) e.setAttribute(k,at[k]); if(parent) parent.appendChild(e); return e; }
+function ticks(lo,hi,n){ const span=hi-lo||1, step0=span/n, mag=Math.pow(10,Math.floor(Math.log10(step0))), err=step0/mag;
+  const step=(err>=7.5?10:err>=3.5?5:err>=1.5?2:1)*mag; const out=[]; for(let v=Math.ceil(lo/step)*step; v<=hi+1e-9; v+=step) out.push(+v.toFixed(10)); return {out,step}; }
+function tipBox(host){ let t=host.querySelector(".tip"); if(!t){ t=document.createElement("div"); t.className="tip"; t.hidden=true; host.appendChild(t);} return t; }
+function placeTip(host,tip,x,y){ tip.hidden=false; const w=tip.offsetWidth, W=host.clientWidth; let left=x+14; if(left+w>W) left=x-14-w; tip.style.left=Math.max(0,left)+"px"; tip.style.top=Math.max(0,y-10)+"px"; }
+
+function lineChart(host, o){
+  const W=Math.max(280,host.clientWidth), H=o.height||200, m={l:46,r:14,t:12,b:26};
+  host.innerHTML=""; const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":o.aria||""},host);
+  const L=o.labels, n=L.length; if(!n){ host.innerHTML='<p class="muted">Nessun dato.</p>'; return; }
+  let vals=[]; o.series.forEach(s=>vals.push(...s.values.filter(v=>v!=null))); if(o.band) { vals.push(...o.band.lo.filter(v=>v!=null), ...o.band.hi.filter(v=>v!=null)); }
+  if(!vals.length){ host.innerHTML='<p class="muted">Nessun dato in questo periodo.</p>'; return; }
+  let lo=Math.min(...vals), hi=Math.max(...vals); const pad=(hi-lo)*.08||1; lo-=pad; hi+=pad; if(o.zero) lo=Math.min(0,lo);
+  const {out:tk}=ticks(lo,hi,4);
+  const x=i=> m.l + (n==1? (W-m.l-m.r)/2 : i*(W-m.l-m.r)/(n-1));
+  const y=v=> o.invert ? m.t+(v-lo)/(hi-lo)*(H-m.t-m.b) : H-m.b-(v-lo)/(hi-lo)*(H-m.t-m.b);
+  tk.forEach(v=>{ if(v<lo||v>hi) return; el("line",{x1:m.l,x2:W-m.r,y1:y(v),y2:y(v),stroke:css("--grid"),"stroke-width":1},svg);
+    const t=el("text",{x:m.l-8,y:y(v)+4,"text-anchor":"end"},svg); t.textContent=(o.yfmt||n0)(v); });
+  const nx=Math.min(n, Math.max(2,Math.floor((W-m.l-m.r)/90)));
+  for(let k=0;k<nx;k++){ const i=Math.round(k*(n-1)/Math.max(1,nx-1)); const t=el("text",{x:x(i),y:H-6,"text-anchor":k==0?"start":k==nx-1?"end":"middle"},svg); t.textContent=dlab(L[i]); }
+  if(o.band){ let d="", up=[], dn=[]; L.forEach((_,i)=>{ if(o.band.lo[i]!=null&&o.band.hi[i]!=null){ up.push([x(i),y(o.band.hi[i])]); dn.push([x(i),y(o.band.lo[i])]); } });
+    if(up.length){ d="M"+up.map(p=>p.join(",")).join("L")+"L"+dn.reverse().map(p=>p.join(",")).join("L")+"Z"; el("path",{d,fill:css("--band"),stroke:"none"},svg); } }
+  o.series.forEach(s=>{
+    const col=css(s.color); let d="", pen=false;
+    s.values.forEach((v,i)=>{ if(v==null){ if(!s.join) pen=false; return;} d+=(pen?"L":"M")+x(i).toFixed(1)+","+y(v).toFixed(1); pen=true; });
+    if(s.area){ /* area sotto la linea principale */ }
+    el("path",{d,fill:"none",stroke:col,"stroke-width":s.width||2,"stroke-linejoin":"round","stroke-linecap":"round","stroke-dasharray":s.dash||"",opacity:s.faint?.45:1},svg);
+    if(s.dots) s.values.forEach((v,i)=>{ if(v!=null) el("circle",{cx:x(i),cy:y(v),r:3,fill:col,stroke:css("--card"),"stroke-width":1.5},svg); });
+    const li=s.values.map((v,i)=>v!=null?i:-1).filter(i=>i>=0).pop();
+    if(li!=null && !s.faint) el("circle",{cx:x(li),cy:y(s.values[li]),r:4.5,fill:col,stroke:css("--card"),"stroke-width":2},svg);
+  });
+  const cross=el("line",{y1:m.t,y2:H-m.b,stroke:css("--muted"),"stroke-width":1,"stroke-dasharray":"3 3",visibility:"hidden"},svg);
+  const marks=o.series.map(s=>el("circle",{r:4.5,fill:css(s.color),stroke:css("--card"),"stroke-width":2,visibility:"hidden"},svg));
+  const hit=el("rect",{x:m.l,y:0,width:W-m.l-m.r,height:H,fill:"transparent"},svg);
+  const tip=tipBox(host);
+  const move=ev=>{ const r=svg.getBoundingClientRect(), px=(ev.clientX-r.left)*W/r.width;
+    const i=Math.max(0,Math.min(n-1,Math.round((px-m.l)/((W-m.l-m.r)/Math.max(1,n-1)))));
+    cross.setAttribute("x1",x(i)); cross.setAttribute("x2",x(i)); cross.setAttribute("visibility","visible");
+    let rows="";
+    o.series.forEach((s,k)=>{ const v=s.values[i]; if(v==null){ marks[k].setAttribute("visibility","hidden"); return; }
+      marks[k].setAttribute("cx",x(i)); marks[k].setAttribute("cy",y(v)); marks[k].setAttribute("visibility","visible");
+      rows+=`<div class="r"><span><i class="dot" style="background:var(${s.color})"></i>${s.name}</span><b>${(s.fmt||o.tfmt||o.yfmt||n0)(v)}</b></div>`; });
+    if(o.band && o.band.lo[i]!=null) rows+=`<div class="r"><span>Fascia di equilibrio</span><b>${n0(o.band.lo[i])}–${n0(o.band.hi[i])}</b></div>`;
+    tip.innerHTML=`<b>${(o.xfmt||dlabY)(L[i])}</b>${rows||'<div class="muted">nessun dato</div>'}`;
+    placeTip(host,tip,x(i)*r.width/W,(ev.clientY-r.top)); };
+  const leave=()=>{ tip.hidden=true; cross.setAttribute("visibility","hidden"); marks.forEach(c=>c.setAttribute("visibility","hidden")); };
+  hit.addEventListener("pointermove",move); hit.addEventListener("pointerdown",move); hit.addEventListener("pointerleave",leave);
+}
+
+function barChart(host, o){
+  const W=Math.max(280,host.clientWidth), H=o.height||210, m={l:40,r:10,t:10,b:26};
+  host.innerHTML=""; const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":o.aria||""},host);
+  const L=o.labels, n=L.length; if(!n) return;
+  const tot=L.map((_,i)=>o.stacks.reduce((p,s)=>p+(s.values[i]||0),0));
+  const hi=Math.max(...tot,1)*1.08; const {out:tk}=ticks(0,hi,4);
+  const bw=(W-m.l-m.r)/n, gap=Math.max(2,Math.min(8,bw*.28)), w=bw-gap;
+  const y=v=>H-m.b-v/hi*(H-m.t-m.b);
+  tk.forEach(v=>{ el("line",{x1:m.l,x2:W-m.r,y1:y(v),y2:y(v),stroke:css("--grid")},svg); const t=el("text",{x:m.l-8,y:y(v)+4,"text-anchor":"end"},svg); t.textContent=(o.yfmt||n0)(v); });
+  const nx=Math.min(n,Math.max(2,Math.floor((W-m.l-m.r)/80)));
+  for(let k=0;k<nx;k++){ const i=Math.round(k*(n-1)/Math.max(1,nx-1)); const t=el("text",{x:m.l+i*bw+bw/2,y:H-6,"text-anchor":k==0?"start":k==nx-1?"end":"middle"},svg); t.textContent=dlab(L[i]); }
+  const groups=[];
+  L.forEach((_,i)=>{ const gEl=el("g",{},svg); groups.push(gEl); let base=0; const x0=m.l+i*bw+gap/2;
+    const segs=o.stacks.filter(s=>(s.values[i]||0)>0);
+    segs.forEach((s,k)=>{ const v=s.values[i], y0=y(base), y1=y(base+v); const top=k==segs.length-1, r=Math.min(4,w/2,(y0-y1));
+      const h=Math.max(0,y0-y1-(top?0:2));
+      const d= top && r>0 ? `M${x0},${y0}V${y0-h+r}Q${x0},${y0-h} ${x0+r},${y0-h}H${x0+w-r}Q${x0+w},${y0-h} ${x0+w},${y0-h+r}V${y0}Z` : `M${x0},${y0}V${y0-h}H${x0+w}V${y0}Z`;
+      el("path",{d,fill:css(s.color),opacity:o.highlightLast&&i!=n-1?.85:1},gEl); base+=v; });
+  });
+  const tip=tipBox(host);
+  const hit=el("rect",{x:m.l,y:0,width:W-m.l-m.r,height:H,fill:"transparent"},svg);
+  const move=ev=>{ const r=svg.getBoundingClientRect(), px=(ev.clientX-r.left)*W/r.width; const i=Math.max(0,Math.min(n-1,Math.floor((px-m.l)/bw)));
+    groups.forEach((gr,k)=>gr.setAttribute("opacity",k==i?1:.45));
+    let rows=o.stacks.filter(s=>s.values[i]).map(s=>`<div class="r"><span><i class="dot" style="background:var(${s.color})"></i>${s.name}</span><b>${(o.tfmt||o.yfmt||n0)(s.values[i])}${s.extra?" · "+s.extra(i):""}</b></div>`).join("");
+    if(o.stacks.length>1) rows+=`<div class="r" style="border-top:1px solid var(--line);margin-top:4px;padding-top:4px"><span>Totale</span><b>${(o.tfmt||o.yfmt||n0)(tot[i])}</b></div>`;
+    tip.innerHTML=`<b>${(o.xfmt||dlabY)(L[i])}</b>${rows||'<div class="muted">riposo</div>'}`; placeTip(host,tip,(m.l+i*bw+bw/2)*r.width/W,ev.clientY-r.top); };
+  hit.addEventListener("pointermove",move); hit.addEventListener("pointerdown",move);
+  hit.addEventListener("pointerleave",()=>{ tip.hidden=true; groups.forEach(gr=>gr.setAttribute("opacity",1)); });
+}
+function legend(id, items){ $(id).innerHTML=items.map(([c,t,line])=>`<span>${line?`<i class="ln" style="background:var(${c})"></i>`:`<i class="dot" style="background:var(${c})"></i>`}${t}</span>`).join(""); }
+
+/* ---------------- dati settimanali ---------------- */
+const Wk=D.weekly, WL=Wk.labels, nW=WL.length;
+const wkLab = s => { const a=pd(s), b=new Date(a); b.setDate(a.getDate()+6); return "Settimana "+a.getDate()+" "+MESI[a.getMonth()]+" – "+b.getDate()+" "+MESI[b.getMonth()]; };
+function delta4(arr, better){
+  const a=avg(arr.slice(-4)), b=avg(arr.slice(-8,-4)); if(a==null||b==null) return chip("neutral","Servono più settimane");
+  const pct=(a-b)/b*100, good = better=="lower" ? pct<0 : pct>0, mag=Math.abs(pct);
+  if(mag<1) return chip("neutral","Stabile");
+  return chip(good?"good":"bad",`${good?"Meglio":"Peggio"} del ${n1(mag)}%`);
+}
+const PERF=[
+  {id:"p-run", t:"Corsa · passo medio", p:"Minuti al km, sedute oltre 2 km.", v:Wk.perf.run, c:"--run", f:pace, inv:true, b:"lower", u:"/km"},
+  {id:"p-eff", t:"Corsa · efficienza aerobica", p:"Metri al minuto per ogni battito: sale se corri più veloce con lo stesso cuore.", v:Wk.perf.eff, c:"--run", f:v=>n1(v,2), b:"higher", u:""},
+  {id:"p-bike",t:"Bici · potenza normalizzata", p:"Watt medi delle uscite con potenza.", v:Wk.perf.bike, c:"--bike", f:v=>n0(v)+" W", b:"higher", u:""},
+  {id:"p-swim",t:"Nuoto · passo medio", p:"Minuti ogni 100 m.", v:Wk.perf.swim, c:"--swim", f:pace, inv:true, b:"lower", u:"/100 m"},
+];
+$("perf").innerHTML=PERF.map(p=>`<div class="card"><div class="ctitle"><div><h3>${p.t}</h3><p>${p.p}</p></div>${delta4(p.v,p.b)}</div><div class="chart" id="${p.id}"></div></div>`).join("");
+
+/* tabella settimana */
+(function(){
+  const cur=nW-1, prev=[...Array(4).keys()].map(k=>cur-1-k).filter(i=>i>=0);
+  const used=ORDER.filter(s=>Wk.sports[s].n.slice(-9).some(v=>v>0));
+  const cell=(s,f,fmt,unit)=>{ const v=Wk.sports[s][f][cur], a=avg(prev.map(i=>Wk.sports[s][f][i]));
+    const dd = a==null ? "" : (v-a);
+    const cls = dd===""||Math.abs(dd)<.05 ? "muted" : dd>0 ? "up" : "down";
+    return `<td>${fmt(v)}${unit}<span class="delta ${cls}">${dd===""?"":(dd>0?"+":"")+fmt(dd)}</span><div class="muted" style="font-size:12px">media ${a==null?"–":fmt(a)}</div></td>`; };
+  const fkm=v=>n1(v), fh=v=>hm(Math.abs(v)).replace(/^/, v<0?"-":""), fn=v=>n1(v,v%1?1:0);
+  let rows=used.map(s=>`<tr><td><span style="display:inline-flex;gap:8px;align-items:center"><span class="dot" style="background:var(--${s})"></span>${SP[s]}</span></td>${cell(s,"km",fkm," km")}${cell(s,"h",fh,"")}${cell(s,"n",fn,"")}</tr>`).join("");
+  const sum=(f,i)=>ORDER.reduce((p,s)=>p+Wk.sports[s][f][i],0);
+  const tc=(f,fmt,unit)=>{ const v=sum(f,cur), a=avg(prev.map(i=>sum(f,i))); const dd=a==null?null:v-a; const cls=dd==null||Math.abs(dd)<.05?"muted":dd>0?"up":"down";
+    return `<td><strong>${fmt(v)}${unit}</strong><span class="delta ${cls}">${dd==null?"":(dd>0?"+":"")+fmt(dd)}</span><div class="muted" style="font-size:12px">media ${a==null?"–":fmt(a)}</div></td>`; };
+  rows+=`<tr><td><strong>Totale</strong></td>${tc("km",fkm," km")}${tc("h",fh,"")}${tc("n",fn,"")}</tr>`;
+  $("wtable").innerHTML=`<thead><tr><th>Sport</th><th>Distanza</th><th>Tempo</th><th>Sedute</th></tr></thead><tbody>${rows}</tbody>`;
+  const a=pd(WL[cur]); const dow=(pd(D.today).getDay()+6)%7+1;
+  $("wsub").textContent=`${wkLab(WL[cur])} (giorno ${dow} di 7), contro la media delle 4 settimane precedenti. Il numero piccolo colorato è la differenza.`;
+})();
+
+/* ---------------- render ---------------- */
+const Dy=D.daily, DL=Dy.labels;
+const HRVst={BALANCED:["good","Equilibrata"],UNBALANCED:["warn","Sbilanciata"],LOW:["bad","Bassa"],POOR:["bad","Scarsa"]};
+if(D.hst && HRVst[D.hst]) $("hrvsub").innerHTML=`Media della notte, media a 7 giorni e la tua fascia di equilibrio. Stato oggi: ${chip(HRVst[D.hst][0],HRVst[D.hst][1])}`;
+legend("hleg", ORDER.filter(s=>Wk.sports[s].h.some(v=>v>0)).map(s=>["--"+s,SP[s]]));
+legend("hrvleg",[["--accent","Notte",1],["--run","Media 7 giorni",1],["--band","Fascia di equilibrio"]]);
+legend("slleg",[["--swim","Ore a notte",1],["--accent","Media 7 giorni",1]]);
+legend("kleg",[["--bike","Giorno",1],["--ink2","Media 7 giorni",1]]);
+
+function render(){
+  PERF.forEach(p=>lineChart($(p.id),{labels:WL,series:[{name:p.t.split(" · ")[1],values:p.v,color:p.c,dots:true,join:true}],yfmt:p.f,invert:p.inv,xfmt:wkLab,height:180,aria:p.t}));
+  barChart($("hours"),{labels:WL,stacks:ORDER.filter(s=>Wk.sports[s].h.some(v=>v>0)).map(s=>({name:SP[s],color:"--"+s,values:Wk.sports[s].h,
+      extra:i=>{const k=Wk.sports[s].km[i]; return (k?n1(k)+" km · ":"")+Wk.sports[s].n[i]+(Wk.sports[s].n[i]==1?" seduta":" sedute");}})),
+    yfmt:v=>n0(v)+"h", tfmt:hm, xfmt:wkLab, aria:"Ore di allenamento per settimana"});
+  barChart($("load"),{labels:WL,stacks:[{name:"Carico",color:"--accent",values:Wk.load}],xfmt:wkLab,height:200,aria:"Carico settimanale"});
+  lineChart($("hrv"),{labels:DL,series:[{name:"Notte",values:Dy.hrv,color:"--accent",width:1.5},{name:"Media 7 giorni",values:Dy.hrv7,color:"--run",width:2.5}],band:{lo:Dy.hlo,hi:Dy.hhi},yfmt:v=>n0(v),tfmt:v=>n0(v)+" ms",aria:"HRV"});
+  lineChart($("rhr"),{labels:DL,series:[{name:"Battito a riposo",values:Dy.rhr,color:"--bad",width:2}],yfmt:v=>n0(v),tfmt:v=>n0(v)+" bpm",aria:"Battito a riposo"});
+  lineChart($("sleep"),{labels:DL,series:[{name:"Ore a notte",values:Dy.sleep,color:"--swim",width:1.5,faint:false},{name:"Media 7 giorni",values:roll(Dy.sleep,7),color:"--accent",width:2.5},{name:"Punteggio",values:Dy.score,color:"--muted",width:0,fmt:v=>n0(v)+"/100"}],yfmt:v=>n1(v,0)+"h",tfmt:hm,aria:"Sonno"});
+  lineChart($("kcal"),{labels:DL,series:[{name:"Consumate",values:Dy.kcal,color:"--bike",width:1.5},{name:"Media 7 giorni",values:roll(Dy.kcal,7),color:"--ink2",width:2.5}],yfmt:v=>n0(v),tfmt:v=>n0(v)+" kcal",aria:"Calorie"});
+}
+/* il punteggio del sonno sta su una scala diversa: lo mostro solo nel riquadro al tocco */
+const _lc=lineChart; lineChart=function(host,o){ if(host.id=="sleep"){ const sc=o.series.pop(); _lc(host,o); const tip=host.querySelector(".tip");
+  const svg=host.querySelector("svg"); const orig=svg.querySelector("rect:last-of-type");
+  orig.addEventListener("pointermove",ev=>{ const r=svg.getBoundingClientRect(), W=+svg.getAttribute("viewBox").split(" ")[2], n=o.labels.length;
+    const i=Math.max(0,Math.min(n-1,Math.round(((ev.clientX-r.left)*W/r.width-46)/((W-60)/Math.max(1,n-1))))); const v=sc.values[i];
+    if(v!=null) tip.insertAdjacentHTML("beforeend",`<div class="r"><span>Punteggio sonno</span><b>${v}/100</b></div>`); }); return; } _lc(host,o); };
+
+/* ---------------- record ---------------- */
+(function(){
+  const R=D.records, cards=[];
+  const add=(k,v,d)=>cards.push(`<div class="card rec"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`);
+  const nm=r=>r.name?r.name+" · ":"";
+  if(R.f5k) add("5 km più veloce",hms(R.f5k.val),`${pace(R.f5k.val/5)} /km · ${nm(R.f5k)}${dlabY(R.f5k.day)}`);
+  if(R.f1k) add("Km più veloce",pace(R.f1k.val),`${nm(R.f1k)}${dlabY(R.f1k.day)}`);
+  if(R.run_long) add("Corsa più lunga",n1(R.run_long.km)+" km",`${hms(R.run_long.sec)} · ${dlabY(R.run_long.day)}`);
+  if(R.bike_long) add("Uscita in bici più lunga",n1(R.bike_long.km)+" km",`${hms(R.bike_long.sec)} · ${n0(R.bike_long.elev)} m di dislivello · ${dlabY(R.bike_long.day)}`);
+  if(R.swim_long) add("Nuotata più lunga",n0(R.swim_long.km*1000)+" m",`${hms(R.swim_long.sec)} · ${pace(R.swim_long.sec/(R.swim_long.km*10))} /100 m · ${dlabY(R.swim_long.day)}`);
+  if(R.elev) add("Più dislivello in bici",n0(R.elev.val)+" m",`${n1(R.elev.km)} km · ${dlabY(R.elev.day)}`);
+  if(R.load) add("Seduta più impegnativa","Carico "+n0(R.load.val),`${nm(R.load)}${dlabY(R.load.day)}`);
+  if(R.week) add("Settimana più grande",hm(R.week.h),`${n1(R.week.km)} km · ${R.week.n} sedute · ${wkLab(R.week.start).replace("Settimana ","")}`);
+  if(R.kcal) add("Giorno con più calorie",n0(R.kcal.val)+" kcal",dlabY(R.kcal.day));
+  if(D.fitage && D.fitage.age) add("Età fitness",n1(D.fitage.age)+" anni",`Età reale ${D.fitage.real} anni`);
+  $("records").innerHTML=cards.join("");
+  $("totals").textContent=`Da ${dlabY(D.totals.first)}: ${D.totals.n} sedute, ${n0(D.totals.km)} km, ${n0(D.totals.h)} ore di allenamento.`;
+  $("foot").textContent=`Dati Garmin Connect · aggiornata il ${D.built} · unità: chilometri.`;
+})();
+
+render();
+let rt; addEventListener("resize",()=>{ clearTimeout(rt); rt=setTimeout(render,150); });
+</script>
