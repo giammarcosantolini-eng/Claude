@@ -349,7 +349,7 @@ def main():
                 nk = (dt.date.fromisoformat(o["new_date"]) - ws).days
                 nb = dict(src, start=o["new_slot"].split("–")[0], slot=o["new_slot"],
                           moved="da %s %s" % (GGN[k], src["slot"]), why=o.get("why", ""), ok=o.get("ok", False),
-                          meal=o.get("meal"))
+                          meal=o.get("meal"), fuel=o.get("fuel"))
                 if o.get("new_text"):
                     nb["text"] = o["new_text"]
                 w["days"][nk].append(nb)
@@ -400,6 +400,8 @@ def main():
                     elif day == today: st = "today"
                     else: st = "todo"
                     ftxt, fkcal = fuel(b, sp, key)
+                    if b.get("fuel"):
+                        ftxt = b["fuel"]
                     s0, e0 = ranges[bi]
                     clash = [] if b.get("ok") else [x for x in ev if not x["allday"] and not (e0 + 30 <= x["s"] or s0 >= x["e"])]
                     move = None
@@ -427,6 +429,14 @@ def main():
                                  "fuel_kcal": sum(x["fkcal"] for x in sess)})
             out_weeks.append({"label": w["label"], "note": w.get("note", ""), "start": w["start"], "days": days_out})
         coach = out_weeks or None
+        track = read_json(os.path.join(DATA, "coach", "track.json"))
+        if track and coach:
+            for w in coach:
+                for d in w["days"]:
+                    wd = dt.date.fromisoformat(d["date"]).weekday()
+                    for x in d["sessions"]:
+                        if x["sport"] == "run" and (x["key"] in ("C2", "C3", "C5") or "test" in x["text"].lower()):
+                            x["track"] = ", ".join("%s–%s" % tuple(r) for r in track["open"][wd]) or "chiusa agli amatori"
         nutrition = nut
 
     payload = {

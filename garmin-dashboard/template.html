@@ -114,6 +114,13 @@ td .delta{font-size:12px;margin-left:6px}
 .evs b{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
 .evs ul{margin:0;padding-left:15px}
 .kday{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--ink2);border-top:1px solid var(--line);padding-top:8px}
+.wo{font-size:13px;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;line-height:1.45}
+.wo>b{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+.wo .wh{font-weight:600;font-size:12px;color:var(--ink2);margin-top:6px}
+.wo ul{margin:2px 0 0;padding-left:16px;display:grid;gap:2px}
+.pri{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14px}
+.pri b{display:block;font-family:var(--f-display);margin-bottom:4px}
+.pri ol{margin:0 0 6px;padding-left:20px} .pri span{font-size:12.5px;color:var(--muted)}
 .mv{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:1px 7px;margin-left:4px}
 .clash{font-size:12.5px;color:var(--ink);background:var(--warn-bg);border-radius:8px;padding:7px 9px;line-height:1.4}
 .clash b{display:block;color:var(--warn);font-size:12px}
@@ -139,6 +146,7 @@ footer{font-size:12.5px;color:var(--muted)}
 
   <section id="coachsec" hidden>
     <div class="ctitle"><div><h2>Il piano del coach</h2><p class="sub" id="csub"></p></div><div id="ctabs" class="tabs"></div></div>
+    <div class="pri" id="cpri"></div>
     <div class="days" id="cdays"></div>
   </section>
 
@@ -222,21 +230,39 @@ $("s0").textContent = "Inizio: "+dlab(D.totals.first);
 $("s1").textContent = "Gara: "+dlab(G.date);
 
 /* ---------------- piano coach ---------------- */
+function woList(lines){
+  let html="", open=false;
+  lines.forEach(l=>{ const txt=l.replace(/\s*·\s*$/,"");
+    if(/:\s*$/.test(txt) && txt.length<30){ if(open){html+="</ul>";open=false;} html+=`<div class="wh">${txt.replace(/:\s*$/,"")}</div>`; return; }
+    if(!open){html+="<ul>";open=true;} html+=`<li>${txt.replace(/^(\d+\s*x\s*[^·(]*)/i,"<strong>$1</strong>")}</li>`; });
+  if(open) html+="</ul>"; return html;
+}
+const PRI=(function(){
+  const s=G.split,d=G.dist,N=D.now, out=[];
+  if(N.bike_kmh) out.push({k:"bike",gap:(d.bike/(s.bike/3600)-N.bike_kmh)/(d.bike/(s.bike/3600))});
+  if(N.swim_pace) out.push({k:"swim",gap:(N.swim_pace-s.swim/(d.swim*10))/(s.swim/(d.swim*10))});
+  if(N.run_pace) out.push({k:"run",gap:(N.run_pace-s.run/d.run)/(s.run/d.run)});
+  return out.sort((a,b)=>b.gap-a.gap);
+})();
 if (D.coach){
   $("coachsec").hidden=false;
   const GG=["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
   const ST={done:["good","Fatta"],missed:["bad","Saltata"],today:["warn","Oggi"],todo:["neutral","Da fare"]};
+  const pt=PRI.map((p,i)=>`<li><strong>${SP[p.k]}</strong>: ${p.gap>0? "ti manca il "+n1(p.gap*100,0)+"% al ritmo gara":"sei già al ritmo gara"+(p.k=="run"?" del 70.3; la qualità serve per il 10 km sotto i 40'":"")}</li>`).join("");
+  $("cpri").innerHTML=`<b>Dove serve lavorare di più</b><ol>${pt}</ol><span>Calcolato dalle ultime 6 settimane. Quando una seduta va spostata, proteggo prima queste.</span>`;
+  const isPri=s=>PRI.length&&PRI[0].gap>0&&(s.sport==PRI[0].k||(PRI[1]&&PRI[1].gap>0&&s.sport==PRI[1].k))&&!/facil/i.test(s.text);
   const showWeek=k=>{
     const w=D.coach[k]; const all=w.days.flatMap(d=>d.sessions), done=all.filter(s=>s.status=="done").length;
     $("csub").textContent=`${w.label}${w.note? " · "+w.note:""} · ${done} di ${all.length} sedute fatte`;
     [...$("ctabs").children].forEach((b,i)=>b.setAttribute("aria-pressed",i==k));
     $("cdays").innerHTML=w.days.map((d,i)=>{
       const sess=d.sessions.map(s=>`<div class="sess" style="border-left-color:var(--${s.sport})">
-        <div class="t">${s.slot}${s.moved?` <span class="mv">spostata ${s.moved}</span>`:""}</div>${s.why?`<div class="did">${s.why}</div>`:""}<div class="n">${s.text}</div>${chip(ST[s.status][0],ST[s.status][1])}
+        <div class="t">${s.slot}${s.moved?` <span class="mv">spostata ${s.moved}</span>`:""}</div>${s.why?`<div class="did">${s.why}</div>`:""}<div class="n">${s.text}</div><div style="display:flex;gap:6px;flex-wrap:wrap">${chip(ST[s.status][0],ST[s.status][1])}${isPri(s)?chip("neutral","Priorità"):""}</div>
         ${s.did? `<div class="did">${s.did.km? n1(s.did.km,2)+" km · ":""}${hms(s.did.sec)}${s.did.hr? " · "+s.did.hr+" bpm":""}</div>`:""}
         ${s.clash&&s.clash.length? `<div class="clash"><b>Si sovrappone a ${s.clash.join(", ")}</b>${s.move? "Proposta: spostala alle "+s.move+".":"Nessun orario libero oggi: chiedi al coach se spostarla a un altro giorno."}</div>`:""}
         ${s.fuel? `<div class="fuel"><b>Integratori</b> ${s.fuel}</div>`:""}
-        ${s.detail&&s.detail.length? `<details><summary>Dettaglio ${s.key}</summary><ul>${s.detail.map(x=>`<li>${x}</li>`).join("")}</ul></details>`:""}</div>`).join("");
+        ${s.track? `<div class="did"><b>Pista aperta oggi:</b> ${s.track}</div>`:""}
+        ${s.detail&&s.detail.length? `<div class="wo"><b>Cosa fare · ${s.key}</b>${woList(s.detail)}</div>`:""}</div>`).join("");
       const ex=d.extra.map(e=>`<div class="rest">+ ${SP[e.sport]} extra${e.km? " "+n1(e.km)+" km":""}</div>`).join("");
       const ml=(d.meals||[]).map(m=>`<li>${m}</li>`).join("");
       const evs=(d.events||[]).map(e=>`<li>${e.allday? "Tutto il giorno":e.time} · ${e.title}</li>`).join("");
