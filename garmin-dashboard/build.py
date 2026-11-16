@@ -298,6 +298,34 @@ def main():
                 tips.append("Merenda del piano verso le 16:30. Cena dopo l'allenamento.")
             return tips
 
+        cal = (read_json(os.path.join(DATA, "calendar", "events.json"), {}) or {}).get("events", [])
+
+        def hm2m(x):
+            h, m = x.replace(".", ":").split(":")[:2]
+            return int(h) * 60 + int(m)
+
+        def busy(day):
+            out = []
+            for e in cal:
+                if e["allday"]:
+                    if e["start"][:10] <= day.isoformat() < e["end"][:10]:
+                        out.append({"title": e["title"], "allday": True})
+                    continue
+                if e["start"][:10] == day.isoformat():
+                    out.append({"title": e["title"], "allday": False, "s": hm2m(e["start"][11:16]),
+                                "e": hm2m(e["end"][11:16]) if e["end"][:10] == day.isoformat() else 24 * 60,
+                                "time": e["start"][11:16] + "–" + e["end"][11:16]})
+            return out
+
+        def slot_range(b, key):
+            s0 = hm2m(b["start"])
+            dur = DUR.get(key) or (hm2m(b["slot"].split("–")[-1]) - s0 if "–" in b["slot"] else 60)
+            return s0, s0 + dur
+
+        def free(s, e, ev, taken):
+            return all(e + 30 <= x["s"] or s >= x["e"] + 15 for x in ev if not x["allday"]) and \
+                   all(e <= a or s >= b for a, b in taken)
+
         out_weeks = []
         for w in plan["weeks"]:
             ws = dt.date.fromisoformat(w["start"])
@@ -308,7 +336,12 @@ def main():
                 day = ws + dt.timedelta(days=k)
                 avail = list(done_by_day.get(day.isoformat(), []))
                 sess = []
+                ev = busy(day)
+                ranges = []
                 for b in blocks:
+                    k0 = (b["codes"] or [None])[0]
+                    ranges.append(slot_range(b, k0))
+                for bi, b in enumerate(blocks):
                     sp = sport_of(b["text"])
                     key = (b["codes"] or [None])[0]
                     if not key and "upper" in b["text"].lower(): key = "Upper"
@@ -321,11 +354,23 @@ def main():
                     elif day == today: st = "today"
                     else: st = "todo"
                     ftxt, fkcal = fuel(b, sp, key)
+                    s0, e0 = ranges[bi]
+                    clash = [x for x in ev if not x["allday"] and not (e0 + 30 <= x["s"] or s0 >= x["e"])]
+                    move = None
+                    if clash:
+                        dur = e0 - s0
+                        others = [r for j, r in enumerate(ranges) if j != bi]
+                        for cand in ("18:00", "12:30", "20:30", "06:00"):
+                            cs = hm2m(cand)
+                            if free(cs, cs + dur, ev, others):
+                                move = "%s–%02d:%02d" % (cand, (cs + dur) // 60, (cs + dur) % 60)
+                                break
                     sess.append({"slot": b["slot"], "text": b["text"], "sport": sp, "key": key, "fuel": ftxt, "fkcal": fkcal,
+                                 "clash": [("%s %s" % (x["title"], x["time"])) for x in clash], "move": move,
                                  "detail": lib.get(key, []) if key else [], "status": st,
                                  "did": {"km": round(match["km"], 2), "sec": round(match["sec"]), "hr": match["hr"]} if match else None})
                 extra = [{"sport": a["sport"], "km": round(a["km"], 2), "sec": round(a["sec"])} for a in avail]
-                days_out.append({"date": day.isoformat(), "sessions": sess, "extra": extra, "meals": meals_for(blocks),
+                days_out.append({"date": day.isoformat(), "sessions": sess, "extra": extra, "meals": meals_for(blocks), "events": ev,
                                  "fuel_kcal": sum(x["fkcal"] for x in sess)})
             out_weeks.append({"label": w["label"], "note": w.get("note", ""), "start": w["start"], "days": days_out})
         coach = out_weeks or None

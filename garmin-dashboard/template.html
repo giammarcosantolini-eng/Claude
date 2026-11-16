@@ -110,6 +110,11 @@ td .delta{font-size:12px;margin-left:6px}
 .rest{font-size:13px;color:var(--muted)}
 .fuel,.meals{font-size:12.5px;color:var(--ink2);background:var(--accent-soft);border-radius:8px;padding:7px 9px;line-height:1.4}
 .fuel b,.meals b{display:block;overflow-wrap:normal;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-bottom:2px}
+.evs{font-size:12.5px;color:var(--ink2);border:1px dashed var(--line);border-radius:8px;padding:7px 9px}
+.evs b{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.evs ul{margin:0;padding-left:15px}
+.clash{font-size:12.5px;color:var(--ink);background:var(--warn-bg);border-radius:8px;padding:7px 9px;line-height:1.4}
+.clash b{display:block;color:var(--warn);font-size:12px}
 .meals ul{margin:0;padding-left:15px;display:grid;gap:3px}
 .supp{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr))}
 footer{font-size:12.5px;color:var(--muted)}
@@ -227,11 +232,13 @@ if (D.coach){
       const sess=d.sessions.map(s=>`<div class="sess" style="border-left-color:var(--${s.sport})">
         <div class="t">${s.slot}</div><div class="n">${s.text}</div>${chip(ST[s.status][0],ST[s.status][1])}
         ${s.did? `<div class="did">${s.did.km? n1(s.did.km,2)+" km · ":""}${hms(s.did.sec)}${s.did.hr? " · "+s.did.hr+" bpm":""}</div>`:""}
+        ${s.clash&&s.clash.length? `<div class="clash"><b>Si sovrappone a ${s.clash.join(", ")}</b>${s.move? "Proposta: spostala alle "+s.move+".":"Nessun orario libero oggi: chiedi al coach se spostarla a un altro giorno."}</div>`:""}
         ${s.fuel? `<div class="fuel"><b>Integratori</b> ${s.fuel}</div>`:""}
         ${s.detail&&s.detail.length? `<details><summary>Dettaglio ${s.key}</summary><ul>${s.detail.map(x=>`<li>${x}</li>`).join("")}</ul></details>`:""}</div>`).join("");
       const ex=d.extra.map(e=>`<div class="rest">+ ${SP[e.sport]} extra${e.km? " "+n1(e.km)+" km":""}</div>`).join("");
       const ml=(d.meals||[]).map(m=>`<li>${m}</li>`).join("");
-      return `<div class="day${d.date==D.today?" today":""}"><h4>${GG[i]} <span>${dlab(d.date)}</span></h4>${sess||'<div class="rest">Riposo</div>'}${ex}${ml?`<div class="meals"><b>Pasti</b><ul>${ml}</ul></div>`:""}</div>`;
+      const evs=(d.events||[]).map(e=>`<li>${e.allday? "Tutto il giorno":e.time} · ${e.title}</li>`).join("");
+      return `<div class="day${d.date==D.today?" today":""}"><h4>${GG[i]} <span>${dlab(d.date)}</span></h4>${evs?`<div class="evs"><b>Impegni</b><ul>${evs}</ul></div>`:""}${sess||'<div class="rest">Riposo</div>'}${ex}${ml?`<div class="meals"><b>Pasti</b><ul>${ml}</ul></div>`:""}</div>`;
     }).join("");
   };
   $("ctabs").innerHTML=D.coach.length>1? D.coach.map((w,i)=>`<button type="button" id="cw${i}">${i==0?"Questa settimana":"Prossima"}</button>`).join(""):"";
