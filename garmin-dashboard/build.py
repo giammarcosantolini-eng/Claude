@@ -472,9 +472,9 @@ def main():
                         "Obiettivo Roma-Ostia sotto 1:30: %s/km. Se lo tieni sotto i 175 bpm sei in linea." % P(rp["ghm"])]
             if k == "C3":
                 return ["Riscaldamento a circa %s." % e,
-                        "8 x 1000 oggi: %s–%s/km (dal tuo miglior 5 km, %s/km). Battito atteso a fine ripetuta 175-185." % (P(rp["p5"] - 8), P(rp["p5"] - 2), P(rp["p5"])),
-                        "Per il 10 km sotto i 40' servono ripetute a %s–%s/km: provale nelle ultime 2." % (P(rp["g5"] - 5), P(rp["g5"])),
-                        "Il coach indica 3:30-3:40/km: è più veloce del tuo km migliore (3:55). Chiedigli conferma.",
+                        "Test del coach: 8 x 1000 a 3:30-3:40/km, per vedere se hai quel passo. Dai tuoi dati oggi il ritmo sostenibile è %s–%s/km (miglior km di sempre 3:55)." % (P(rp["p5"] - 8), P(rp["p5"] - 2)),
+                        "Come farlo: prima ripetuta a 3:40 e guarda come la chiudi. Se dalla terza non tieni sotto 3:45 o il battito supera 188, passa a %s–%s/km (ritmo da 10 km sotto i 40') e completa tutte e 8." % (P(rp["g5"] - 5), P(rp["g5"])),
+                        "Il risultato è un dato prezioso: segna i tempi di ogni ripetuta, la dashboard li legge dal Garmin se usi il tasto giro.",
                         "Recupero 2'30: camminata o corsa lentissima, il battito deve scendere sotto 130."]
             if k == "C5":
                 return ["Variazioni: 2' forti a circa %s/km (ritmo 10 km), 2' piano a circa %s/km." % (P(rp["k10"]), P(rp["easy"][1]))]
@@ -494,7 +494,7 @@ def main():
                 for d in w["days"]:
                     wd = dt.date.fromisoformat(d["date"]).weekday()
                     for x in d["sessions"]:
-                        if x["sport"] == "run" and (x["key"] in ("C2", "C3", "C5") or "test" in x["text"].lower()):
+                        if x["sport"] == "run" and (x["key"] in ("C2", "C3", "C5") or "test" in x["text"].lower()) and "gara" not in x["text"].lower():
                             x["track"] = ", ".join("%s–%s" % tuple(r) for r in track["open"][wd]) or "chiusa agli amatori"
         nutrition = nut
 
