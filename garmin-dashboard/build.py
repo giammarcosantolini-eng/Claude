@@ -260,6 +260,7 @@ def main():
         nut = read_json(os.path.join(DATA, "coach", "nutrition.json"), {}) or {}
         DUR = {"N1": 70, "N2": 75, "N3": 70, "C1": 50, "C2": 60, "C3": 65, "C4": 50, "C5": 50,
                "B1": 55, "B2": 55, "B3": 180, "Upper": 60, "Lower": 60}
+        DUR_TXT = {"2000m": 45, "test": 75}
 
         def fuel(b, sp, key):
             """Integrazione consigliata per la seduta: (testo, kcal extra)."""
@@ -304,8 +305,12 @@ def main():
             h, m = x.replace(".", ":").split(":")[:2]
             return int(h) * 60 + int(m)
 
+        WORK = (8 * 60 + 40, 18 * 60 + 45)  # lavoro 9:00-18:40 + 20 min di viaggio: libero dalle 19:00
+
         def busy(day):
             out = []
+            if day.weekday() < 5:
+                out.append({"title": "Lavoro", "allday": False, "s": WORK[0], "e": WORK[1], "time": "9:00–18:40 (+20 min di viaggio)", "work": True})
             for e in cal:
                 if e["allday"]:
                     if e["start"][:10] <= day.isoformat() < e["end"][:10]:
@@ -319,12 +324,32 @@ def main():
 
         def slot_range(b, key):
             s0 = hm2m(b["start"])
-            dur = DUR.get(key) or (hm2m(b["slot"].split("–")[-1]) - s0 if "–" in b["slot"] else 60)
+            dur = DUR.get(key) or next((v for k, v in DUR_TXT.items() if k in b["text"].lower()), None) or (hm2m(b["slot"].split("–")[-1]) - s0 if "–" in b["slot"] else 60)
             return s0, s0 + dur
 
         def free(s, e, ev, taken):
             return all(e + 30 <= x["s"] or s >= x["e"] + 15 for x in ev if not x["allday"]) and \
                    all(e <= a or s >= b for a, b in taken)
+
+        ovr = read_json(os.path.join(DATA, "coach", "overrides.json"), []) or []
+        GGN = ["lun", "mar", "mer", "gio", "ven", "sab", "dom"]
+        for w in plan["weeks"]:
+            ws = dt.date.fromisoformat(w["start"])
+            for o in ovr:
+                k = (dt.date.fromisoformat(o["date"]) - ws).days
+                if not 0 <= k < 7:
+                    continue
+                src = next((b for b in w["days"][k] if b["text"] == o["text"] and not b.get("moved")), None)
+                if not src:
+                    continue
+                w["days"][k].remove(src)
+                nk = (dt.date.fromisoformat(o["new_date"]) - ws).days
+                nb = dict(src, start=o["new_slot"].split("–")[0], slot=o["new_slot"],
+                          moved="da %s %s" % (GGN[k], src["slot"]), why=o.get("why", ""))
+                if o.get("new_text"):
+                    nb["text"] = o["new_text"]
+                w["days"][nk].append(nb)
+                w["days"][nk].sort(key=lambda x: x["start"])
 
         out_weeks = []
         for w in plan["weeks"]:
@@ -360,17 +385,19 @@ def main():
                     if clash:
                         dur = e0 - s0
                         others = [r for j, r in enumerate(ranges) if j != bi]
-                        for cand in ("18:00", "12:30", "20:30", "06:00"):
+                        cands = ("06:00", "06:30", "19:00", "19:30", "20:00") if day.weekday() < 5 else \
+                                ("07:00", "09:00", "10:30", "15:30", "16:30", "17:30")
+                        for cand in cands:
                             cs = hm2m(cand)
                             if free(cs, cs + dur, ev, others):
                                 move = "%s–%02d:%02d" % (cand, (cs + dur) // 60, (cs + dur) % 60)
                                 break
                     sess.append({"slot": b["slot"], "text": b["text"], "sport": sp, "key": key, "fuel": ftxt, "fkcal": fkcal,
-                                 "clash": [("%s %s" % (x["title"], x["time"])) for x in clash], "move": move,
+                                 "clash": [("%s %s" % (x["title"], x["time"])) for x in clash], "move": move, "moved": b.get("moved"), "why": b.get("why"),
                                  "detail": lib.get(key, []) if key else [], "status": st,
                                  "did": {"km": round(match["km"], 2), "sec": round(match["sec"]), "hr": match["hr"]} if match else None})
                 extra = [{"sport": a["sport"], "km": round(a["km"], 2), "sec": round(a["sec"])} for a in avail]
-                days_out.append({"date": day.isoformat(), "sessions": sess, "extra": extra, "meals": meals_for(blocks), "events": ev,
+                days_out.append({"date": day.isoformat(), "sessions": sess, "extra": extra, "meals": meals_for(blocks), "events": [x for x in ev if not x.get("work")],
                                  "fuel_kcal": sum(x["fkcal"] for x in sess)})
             out_weeks.append({"label": w["label"], "note": w.get("note", ""), "start": w["start"], "days": days_out})
         coach = out_weeks or None

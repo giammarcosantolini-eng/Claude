@@ -116,6 +116,17 @@ def main():
             print("Calendario %s: non raggiungibile (%s)" % (name, e.__class__.__name__))
             continue
         evs = parse_ics(text, name, lo, hi)
+        if name == "roma":
+            for e in evs:
+                e["title"] = e["title"].replace("\u26bd", "").strip()
+                home = "olimpico" in e["location"].lower() or re.match(r"\s*(as\s+)?roma\s*(vs|-)", e["title"], re.I)
+                if home:  # allo stadio: 2 ore prima (viaggio, ingresso) e 1 ora dopo
+                    s0 = dt.datetime.fromisoformat(e["start"]) - dt.timedelta(hours=2)
+                    e1 = dt.datetime.fromisoformat(e["end"]) + dt.timedelta(hours=1)
+                    e["start"], e["end"] = s0.isoformat(timespec="minutes"), e1.isoformat(timespec="minutes")
+                    e["title"] += " (allo stadio)"
+                else:
+                    e["title"] += " (in TV)"
         print("Calendario %s: %d impegni nelle prossime settimane" % (name, len(evs)))
         allev += evs
     allev.sort(key=lambda e: e["start"])

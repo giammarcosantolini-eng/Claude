@@ -113,6 +113,7 @@ td .delta{font-size:12px;margin-left:6px}
 .evs{font-size:12.5px;color:var(--ink2);border:1px dashed var(--line);border-radius:8px;padding:7px 9px}
 .evs b{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
 .evs ul{margin:0;padding-left:15px}
+.mv{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:1px 7px;margin-left:4px}
 .clash{font-size:12.5px;color:var(--ink);background:var(--warn-bg);border-radius:8px;padding:7px 9px;line-height:1.4}
 .clash b{display:block;color:var(--warn);font-size:12px}
 .meals ul{margin:0;padding-left:15px;display:grid;gap:3px}
@@ -230,7 +231,7 @@ if (D.coach){
     [...$("ctabs").children].forEach((b,i)=>b.setAttribute("aria-pressed",i==k));
     $("cdays").innerHTML=w.days.map((d,i)=>{
       const sess=d.sessions.map(s=>`<div class="sess" style="border-left-color:var(--${s.sport})">
-        <div class="t">${s.slot}</div><div class="n">${s.text}</div>${chip(ST[s.status][0],ST[s.status][1])}
+        <div class="t">${s.slot}${s.moved?` <span class="mv">spostata ${s.moved}</span>`:""}</div>${s.why?`<div class="did">${s.why}</div>`:""}<div class="n">${s.text}</div>${chip(ST[s.status][0],ST[s.status][1])}
         ${s.did? `<div class="did">${s.did.km? n1(s.did.km,2)+" km · ":""}${hms(s.did.sec)}${s.did.hr? " · "+s.did.hr+" bpm":""}</div>`:""}
         ${s.clash&&s.clash.length? `<div class="clash"><b>Si sovrappone a ${s.clash.join(", ")}</b>${s.move? "Proposta: spostala alle "+s.move+".":"Nessun orario libero oggi: chiedi al coach se spostarla a un altro giorno."}</div>`:""}
         ${s.fuel? `<div class="fuel"><b>Integratori</b> ${s.fuel}</div>`:""}
