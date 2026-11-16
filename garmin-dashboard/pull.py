@@ -228,6 +228,24 @@ def main():
                 lambda a, b: "/weight-service/weight/range/%s/%s" % (a, b),
                 lambda r: as_list(r, "dailyWeightSummaries"))
 
+    # gare multisport: scarico le frazioni (nuoto, bici, corsa) una volta sola
+    mpath = os.path.join(DATA, "multisport.json")
+    multi = read_json(mpath, {}) or {}
+    for a in acts:
+        aid = str(a["activityId"])
+        if (a.get("activityType") or {}).get("typeKey") != "multi_sport" or aid in multi:
+            continue
+        log("Gara multisport del %s: scarico le frazioni" % a["startTimeLocal"][:10])
+        det = api_get("/activity-service/activity/%s" % aid) or {}
+        legs = []
+        for c in (det.get("metadataDTO") or {}).get("childIds") or []:
+            x = api_get("/activity-service/activity/%s" % c) or {}
+            s = x.get("summaryDTO") or {}
+            legs.append({"type": (x.get("activityTypeDTO") or {}).get("typeKey"), "distance": s.get("distance"),
+                         "duration": s.get("duration"), "moving": s.get("movingDuration"), "avgHR": s.get("averageHR")})
+        multi[aid] = {"date": a["startTimeLocal"][:10], "name": a.get("activityName"), "legs": legs}
+        write_json(mpath, multi)
+
     log("Eta' fitness e zone cardiache...")
     for name, p in (("fitnessage", "/fitnessage-service/fitnessage/v2/%s" % today),
                     ("hrzones", "/biometric-service/heartRateZones/v2")):

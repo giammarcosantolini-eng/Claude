@@ -18,7 +18,7 @@ GOAL = {
     "date": "2027-04-24",
     "target": "5:30:00",
     # una possibile ripartizione del tempo obiettivo (secondi)
-    "split": {"swim": 38 * 60, "t": 8 * 60, "bike": 170 * 60, "run": 114 * 60},
+    "split": {"swim": 35 * 60, "t": 8 * 60, "bike": 173 * 60, "run": 114 * 60},
     "dist": {"swim": 1.9, "bike": 90.0, "run": 21.1},
 }
 TESTS = [
@@ -86,6 +86,8 @@ def main():
             "name": (a.get("activityName") or "")[:60],
             "km": (a.get("distance") or 0) / 1000,
             "sec": a.get("duration") or 0,
+            # tempo in movimento: esclude le pause a bordo vasca e ai semafori
+            "mov": a.get("movingDuration") or a.get("duration") or 0,
             "elev": a.get("elevationGain") or 0,
             "hr": a.get("averageHR"),
             "load": a.get("activityTrainingLoad") or 0,
@@ -122,7 +124,7 @@ def main():
         for z in range(5):
             zones[i][z] += a["zones"][z] / 3600
         if a["sport"] == "run" and a["km"] > 2:
-            perf["run"][i][0] += a["sec"]; perf["run"][i][1] += a["km"]
+            perf["run"][i][0] += a["mov"]; perf["run"][i][1] += a["km"]
             if a["hr"]:
                 # efficienza: metri al minuto per ogni battito (piu' alto = meglio)
                 perf["eff"][i][0] += (a["km"] * 1000 / (a["sec"] / 60)) / a["hr"] * a["sec"]
@@ -130,7 +132,7 @@ def main():
         if a["sport"] == "bike" and a["np"]:
             perf["bike"][i][0] += a["np"] * a["sec"]; perf["bike"][i][1] += a["sec"]
         if a["sport"] == "swim" and a["km"] > 0.3:
-            perf["swim"][i][0] += a["sec"]; perf["swim"][i][1] += a["km"] * 10  # /100 m
+            perf["swim"][i][0] += a["mov"]; perf["swim"][i][1] += a["km"] * 10  # /100 m, solo tempo in acqua
 
     def ratio(pair, nd=1):
         return round(pair[0] / pair[1], nd) if pair[1] else None
@@ -198,7 +200,7 @@ def main():
 
     def recent(sport, cond=lambda a: True):
         r = [a for a in A if a["sport"] == sport and a["day"] >= six and cond(a)]
-        return sum(a["sec"] for a in r), sum(a["km"] for a in r)
+        return sum(a["mov"] for a in r), sum(a["km"] for a in r)
 
     rs, rk = recent("run", lambda a: a["km"] > 2)
     bs, bk = recent("bike", lambda a: a["type"] in ("road_biking", "cycling") and a["km"] > 20)
@@ -439,7 +441,20 @@ def main():
                             x["track"] = ", ".join("%s–%s" % tuple(r) for r in track["open"][wd]) or "chiusa agli amatori"
         nutrition = nut
 
+    races = []
+    for r in (read_json(os.path.join(DATA, "multisport.json"), {}) or {}).values():
+        legs = {}
+        for l in r["legs"]:
+            t, d = l.get("type") or "", l.get("distance") or 0
+            tm = l.get("moving") or l.get("duration") or 0
+            if "swim" in t and d: legs["swim"] = round(tm / (d / 100))
+            elif ("cycl" in t or "bik" in t) and tm: legs["bike"] = round(d / 1000 / (tm / 3600), 1)
+            elif "run" in t and d: legs["run"] = round(tm / (d / 1000))
+        races.append({"date": r["date"], "name": (r.get("name") or "").replace(" Multisport", ""), "legs": legs})
+    races.sort(key=lambda r: r["date"])
+
     payload = {
+        "races": races,
         "coach": coach, "nutrition": nutrition,
         "today": today.isoformat(), "built": dt.datetime.now().strftime("%d/%m/%Y %H:%M"),
         "goal": GOAL, "tests": TESTS, "weekly": weekly, "daily": daily, "hst": hst,

@@ -307,8 +307,9 @@ $("tests").innerHTML = D.tests.map(t=>{
     }
     return `<div class="card tile"><div class="k"><span class="dot" style="background:var(--${r.k})"></span>${r.lab} · ${hms(r.tot)}</div>
       <div class="v">${r.fmt(r.tgt)}<small>${r.unit}</small></div>
-      <div class="d">Ritmo gara. In allenamento: <strong>${r.cur!=null? r.fmt(r.cur)+" "+r.unit : "–"}</strong>${r.k=="bike"?" (uscite su strada > 20 km)":""}</div>${st}</div>`;
-  }).join("") + `<p class="muted" style="grid-column:1/-1;margin:0;font-size:13px">Con ${hms(G.split.t)} di cambi il totale fa ${G.target}. Il ritmo in allenamento è la media di tutte le sedute, lente comprese: è normale che sia più lento del ritmo gara.</p>`;
+      <div class="d">Ritmo gara. In allenamento: <strong>${r.cur!=null? r.fmt(r.cur)+" "+r.unit : "–"}</strong>${r.k=="bike"?" (uscite su strada > 20 km)":r.k=="swim"?" (solo tempo in acqua)":""}</div>
+      ${(D.races||[]).filter(x=>x.legs[r.k]).length? `<div class="d">In gara: ${(D.races||[]).filter(x=>x.legs[r.k]).map(x=>`<strong>${r.fmt(x.legs[r.k])}</strong> ${x.name} (${dlab(x.date)})`).join(" · ")}</div>`:""}${st}</div>`;
+  }).join("") + `<p class="muted" style="grid-column:1/-1;margin:0;font-size:13px">Con ${hms(G.split.t)} di cambi il totale fa ${G.target}. Il ritmo in allenamento è la media di tutte le sedute, lente comprese, contando solo il tempo in movimento (senza pause a bordo vasca o ai semafori). La ripartizione è una mia proposta da rivedere con il coach.</p>`;
 })();
 
 /* ---------------- motore grafici ---------------- */
