@@ -401,7 +401,7 @@ function barChart(host, o){
   hit.addEventListener("pointermove",move); hit.addEventListener("pointerdown",move);
   hit.addEventListener("pointerleave",()=>{ tip.hidden=true; groups.forEach(gr=>gr.setAttribute("opacity",1)); });
 }
-function fit(pts){ const n=pts.length; if(n<4) return null; const mx=pts.reduce((p,q)=>p+q[0],0)/n, my=pts.reduce((p,q)=>p+q[1],0)/n;
+function fit(pts){ const n=pts.length; if(n<6) return null; const mx=pts.reduce((p,q)=>p+q[0],0)/n, my=pts.reduce((p,q)=>p+q[1],0)/n;
   const sxx=pts.reduce((p,q)=>p+(q[0]-mx)**2,0); if(!sxx) return null; const b=pts.reduce((p,q)=>p+(q[0]-mx)*(q[1]-my),0)/sxx; return {a:my-b*mx,b,lo:Math.min(...pts.map(q=>q[0])),hi:Math.max(...pts.map(q=>q[0]))}; }
 function scatterChart(host,o){
   const W=Math.max(260,host.clientWidth), H=230, m={l:46,r:12,t:10,b:30};
@@ -503,7 +503,7 @@ function render(){
     if(f&&f.fo&&f.fn){ const ref=Math.round(Math.max(Math.max(f.fo.lo,f.fn.lo),Math.min(c.ref,Math.min(f.fo.hi,f.fn.hi))));
       const a=f.fo.a+f.fo.b*ref, z=f.fn.a+f.fn.b*ref, d=z-a, good=c.better=="lower"? d<0:d>0;
       s.innerHTML=`A ${ref} bpm: prima ${c.yfmt(a)}${c.unit}, ora ${c.yfmt(z)}${c.unit}. ${Math.abs(d)<1?chip("neutral","Stabile"):chip(good?"good":"bad",(good?"Meglio di ":"Peggio di ")+c.fmtd(d))}`; }
-    else s.textContent="Servono più sedute per confrontare i due periodi."; });
+    else s.textContent="Servono almeno 6 sedute per periodo per confrontare prima e ora: per ora guarda come si muovono i punti."; });
   barChart($("hours"),{labels:WL,stacks:ORDER.filter(s=>Wk.sports[s].h.some(v=>v>0)).map(s=>({name:SP[s],color:"--"+s,values:Wk.sports[s].h,
       extra:i=>{const k=Wk.sports[s].km[i]; return (k?n1(k)+" km · ":"")+Wk.sports[s].n[i]+(Wk.sports[s].n[i]==1?" seduta":" sedute");}})),
     yfmt:v=>n0(v)+"h", tfmt:hm, xfmt:wkLab, aria:"Ore di allenamento per settimana"});
