@@ -239,6 +239,7 @@ def main():
 
     # ---------------------------------------------------- piano del coach
     coach = None
+    nutrition = None
     plan = read_json(os.path.join(DATA, "coach", "plan.json"))
     strength = read_json(os.path.join(DATA, "coach", "strength.json"), {}) or {}
     if plan:
@@ -256,6 +257,47 @@ def main():
         done_by_day = {}
         for a in A:
             done_by_day.setdefault(a["day"].isoformat(), []).append(a)
+        nut = read_json(os.path.join(DATA, "coach", "nutrition.json"), {}) or {}
+        DUR = {"N1": 70, "N2": 75, "N3": 70, "C1": 50, "C2": 60, "C3": 65, "C4": 50, "C5": 50,
+               "B1": 55, "B2": 55, "B3": 180, "Upper": 60, "Lower": 60}
+
+        def fuel(b, sp, key):
+            """Integrazione consigliata per la seduta: (testo, kcal extra)."""
+            t = b["text"].lower()
+            evening = b["start"] >= "16"
+            if sp == "swim":
+                return "Acqua a bordo vasca. Nessun gel: la seduta dura poco più di un'ora.", 0
+            if sp == "gym":
+                return "Solo acqua. Creatina dopo la seduta.", 0
+            if "test" in t:
+                return "1 gel Limone con sodio 15' prima del via. Borraccia con 1 Electrolytes Boost durante il riscaldamento.", 120
+            if sp == "run":
+                if key in ("C2", "C3", "C5"):
+                    return "1 Electrolytes Boost in borraccia. 1 gel Limone con sodio 10-15' prima della parte veloce.", 120
+                return "Solo acqua: corsa facile e breve.", 0
+            if sp == "bike":
+                if key == "B3":
+                    return ("60-80 g di carboidrati l'ora. Prime 2 ore: 1 Carbo Bar + 1 gel all'ora. Dalla terza ora: 2 gel l'ora, "
+                            "il gel con caffeina nell'ultima ora. 1 Electrolytes Boost per borraccia (circa 1 l'ora)."), 650
+                extra = " Niente gel con caffeina: è sera e disturba il sonno." if evening else ""
+                if key == "B1":
+                    return "Borraccia con 1 Electrolytes Boost (sui rulli si suda tanto). 1 gel Mango dopo 30'." + extra, 120
+                return "Borraccia con 1 Electrolytes Boost (sui rulli si suda tanto)." + extra, 0
+            return "", 0
+
+        def meals_for(blocks):
+            tips = []
+            starts = sorted(b["start"] for b in blocks)
+            if any(s < "07:30" for s in starts):
+                tips.append("Prima dell'allenamento del mattino: 2 fette biscottate con miele (dalla colazione). Il resto della colazione subito dopo.")
+            if any("08:" in s for s in starts):
+                tips.append("Colazione completa verso le 7:00, almeno un'ora e mezza prima di partire.")
+            if any("12:" <= s < "16:" for s in starts):
+                tips.append("Pranzo entro le 11:30, così arrivi all'allenamento con la digestione fatta.")
+            if any(s >= "16:" for s in starts):
+                tips.append("Merenda del piano verso le 16:30. Cena dopo l'allenamento.")
+            return tips
+
         out_weeks = []
         for w in plan["weeks"]:
             ws = dt.date.fromisoformat(w["start"])
@@ -278,16 +320,19 @@ def main():
                     elif day < today: st = "missed"
                     elif day == today: st = "today"
                     else: st = "todo"
-                    sess.append({"slot": b["slot"], "text": b["text"], "sport": sp, "key": key,
+                    ftxt, fkcal = fuel(b, sp, key)
+                    sess.append({"slot": b["slot"], "text": b["text"], "sport": sp, "key": key, "fuel": ftxt, "fkcal": fkcal,
                                  "detail": lib.get(key, []) if key else [], "status": st,
                                  "did": {"km": round(match["km"], 2), "sec": round(match["sec"]), "hr": match["hr"]} if match else None})
                 extra = [{"sport": a["sport"], "km": round(a["km"], 2), "sec": round(a["sec"])} for a in avail]
-                days_out.append({"date": day.isoformat(), "sessions": sess, "extra": extra})
+                days_out.append({"date": day.isoformat(), "sessions": sess, "extra": extra, "meals": meals_for(blocks),
+                                 "fuel_kcal": sum(x["fkcal"] for x in sess)})
             out_weeks.append({"label": w["label"], "note": w.get("note", ""), "start": w["start"], "days": days_out})
         coach = out_weeks or None
+        nutrition = nut
 
     payload = {
-        "coach": coach,
+        "coach": coach, "nutrition": nutrition,
         "today": today.isoformat(), "built": dt.datetime.now().strftime("%d/%m/%Y %H:%M"),
         "goal": GOAL, "tests": TESTS, "weekly": weekly, "daily": daily, "hst": hst,
         "now": now, "records": records, "totals": totals,

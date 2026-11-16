@@ -95,7 +95,7 @@ td .delta{font-size:12px;margin-left:6px}
 .tabs button{font:600 13px var(--f-body);border:1px solid var(--line);background:var(--card);color:var(--ink2);padding:7px 12px;border-radius:99px;cursor:pointer}
 .tabs button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--card)}
 .tabs button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.days{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,138px),1fr))}
+.days{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr))}
 .day{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;grid-template-columns:minmax(0,1fr);gap:8px;align-content:start;min-width:0}
 .day.today{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 .day h4{margin:0;font:700 14px var(--f-display);display:flex;justify-content:space-between;gap:6px}
@@ -108,6 +108,10 @@ td .delta{font-size:12px;margin-left:6px}
 .sess summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:12px}
 .sess ul{margin:6px 0 0;padding-left:16px;display:grid;gap:3px}
 .rest{font-size:13px;color:var(--muted)}
+.fuel,.meals{font-size:12.5px;color:var(--ink2);background:var(--accent-soft);border-radius:8px;padding:7px 9px;line-height:1.4}
+.fuel b,.meals b{display:block;overflow-wrap:normal;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-bottom:2px}
+.meals ul{margin:0;padding-left:15px;display:grid;gap:3px}
+.supp{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr))}
 footer{font-size:12.5px;color:var(--muted)}
 @media (prefers-reduced-motion:no-preference){.season i{transition:width .8s ease}}
 </style>
@@ -163,9 +167,11 @@ footer{font-size:12.5px;color:var(--muted)}
   </section>
 
   <section>
-    <div><h2>Energia</h2><p class="sub">Calorie consumate al giorno secondo Garmin.</p></div>
+    <div><h2>Energia</h2><p class="sub">Calorie consumate secondo Garmin, confrontate con quelle del piano della nutrizionista.</p></div>
+    <div class="grid g3" id="ktiles"></div>
     <div class="card"><div class="ctitle"><div><h3>Calorie consumate</h3><p>Totale giornaliero e media a 7 giorni.</p></div></div><div class="legend" id="kleg"></div><div class="chart" id="kcal"></div>
-      <p class="note">Le calorie assunte arriveranno qui quando aggiungiamo il piano della nutrizionista: vedrai consumate e assunte una accanto all'altra.</p></div>
+      <p class="note" id="knote">Le calorie assunte arriveranno qui quando aggiungiamo il piano della nutrizionista.</p></div>
+    <div class="card" id="suppcard" hidden><div class="ctitle"><div><h3>Integrazione di ogni giorno</h3><p>Il tuo programma fisso. Quella per le singole sedute è nel piano del coach, giorno per giorno.</p></div></div><div class="supp" id="supp"></div></div>
   </section>
 
   <section>
@@ -221,9 +227,11 @@ if (D.coach){
       const sess=d.sessions.map(s=>`<div class="sess" style="border-left-color:var(--${s.sport})">
         <div class="t">${s.slot}</div><div class="n">${s.text}</div>${chip(ST[s.status][0],ST[s.status][1])}
         ${s.did? `<div class="did">${s.did.km? n1(s.did.km,2)+" km · ":""}${hms(s.did.sec)}${s.did.hr? " · "+s.did.hr+" bpm":""}</div>`:""}
+        ${s.fuel? `<div class="fuel"><b>Integratori</b> ${s.fuel}</div>`:""}
         ${s.detail&&s.detail.length? `<details><summary>Dettaglio ${s.key}</summary><ul>${s.detail.map(x=>`<li>${x}</li>`).join("")}</ul></details>`:""}</div>`).join("");
       const ex=d.extra.map(e=>`<div class="rest">+ ${SP[e.sport]} extra${e.km? " "+n1(e.km)+" km":""}</div>`).join("");
-      return `<div class="day${d.date==D.today?" today":""}"><h4>${GG[i]} <span>${dlab(d.date)}</span></h4>${sess||'<div class="rest">Riposo</div>'}${ex}</div>`;
+      const ml=(d.meals||[]).map(m=>`<li>${m}</li>`).join("");
+      return `<div class="day${d.date==D.today?" today":""}"><h4>${GG[i]} <span>${dlab(d.date)}</span></h4>${sess||'<div class="rest">Riposo</div>'}${ex}${ml?`<div class="meals"><b>Pasti</b><ul>${ml}</ul></div>`:""}</div>`;
     }).join("");
   };
   $("ctabs").innerHTML=D.coach.length>1? D.coach.map((w,i)=>`<button type="button" id="cw${i}">${i==0?"Questa settimana":"Prossima"}</button>`).join(""):"";
@@ -393,7 +401,19 @@ if(D.hst && HRVst[D.hst]) $("hrvsub").innerHTML=`Media della notte, media a 7 gi
 legend("hleg", ORDER.filter(s=>Wk.sports[s].h.some(v=>v>0)).map(s=>["--"+s,SP[s]]));
 legend("hrvleg",[["--accent","Notte",1],["--run","Media 7 giorni",1],["--band","Fascia di equilibrio"]]);
 legend("slleg",[["--swim","Ore a notte",1],["--accent","Media 7 giorni",1]]);
-legend("kleg",[["--bike","Giorno",1],["--ink2","Media 7 giorni",1]]);
+const N=D.nutrition, planK=N&&N.meals? N.meals.reduce((p,m)=>p+m.kcal,0):null;
+legend("kleg",[["--bike","Consumate",1],["--ink2","Media 7 giorni",1]].concat(planK?[["--run","Piano nutrizionista (stima)",1]]:[]));
+if(planK){
+  const last28=Dy.kcal.slice(-29,-1), burn=avg(last28);
+  const wk=D.coach&&D.coach[0]? D.coach[0].days.reduce((p,d)=>p+(d.fuel_kcal||0),0)/7 : 0;
+  const gap=burn-(planK+wk);
+  $("ktiles").innerHTML=`<div class="card tile"><div class="k">Consumi in media (ultime 4 settimane)</div><div class="v">${n0(burn)}<small>kcal/giorno</small></div></div>
+   <div class="card tile"><div class="k">Piano della nutrizionista (stima)</div><div class="v">${n0(planK)}<small>kcal/giorno</small></div><div class="d">+ ${n0(wk)} kcal/giorno in media da gel e barrette questa settimana</div></div>
+   <div class="card tile"><div class="k">Differenza</div><div class="v">${gap>0?"−":"+"}${n0(Math.abs(gap))}<small>kcal/giorno</small></div>${chip(Math.abs(gap)<300?"good":"warn",gap>0?"Consumi più di quanto mangi":"Mangi più di quanto consumi")}</div>`;
+  $("knote").innerHTML=`Le calorie del piano sono una mia stima dalle prime scelte di ogni pasto (piano del ${dlabY(N.plan_date)}): il piano non indica le calorie. Con le alternative il totale cambia di poco. ${Math.abs(gap)>=300?"<strong>La differenza è ampia: parlane con la nutrizionista, il piano è di luglio e da allora il volume di allenamento è cresciuto.</strong>":""}`;
+  $("suppcard").hidden=false;
+  $("supp").innerHTML=N.supplements.map(x=>`<div class="tile"><div class="k">${x.when}</div><div class="v" style="font-size:18px">${x.name}</div><div class="d">${x.dose}</div></div>`).join("");
+}
 
 function render(){
   PERF.forEach(p=>lineChart($(p.id),{labels:WL,series:[{name:p.t.split(" · ")[1],values:p.v,color:p.c,dots:true,join:true}],yfmt:p.f,invert:p.inv,xfmt:wkLab,height:180,aria:p.t}));
@@ -404,7 +424,7 @@ function render(){
   lineChart($("hrv"),{labels:DL,series:[{name:"Notte",values:Dy.hrv,color:"--accent",width:1.5},{name:"Media 7 giorni",values:Dy.hrv7,color:"--run",width:2.5}],band:{lo:Dy.hlo,hi:Dy.hhi},yfmt:v=>n0(v),tfmt:v=>n0(v)+" ms",aria:"HRV"});
   lineChart($("rhr"),{labels:DL,series:[{name:"Battito a riposo",values:Dy.rhr,color:"--bad",width:2}],yfmt:v=>n0(v),tfmt:v=>n0(v)+" bpm",aria:"Battito a riposo"});
   lineChart($("sleep"),{labels:DL,series:[{name:"Ore a notte",values:Dy.sleep,color:"--swim",width:1.5,faint:false},{name:"Media 7 giorni",values:roll(Dy.sleep,7),color:"--accent",width:2.5},{name:"Punteggio",values:Dy.score,color:"--muted",width:0,fmt:v=>n0(v)+"/100"}],yfmt:v=>n1(v,0)+"h",tfmt:hm,aria:"Sonno"});
-  lineChart($("kcal"),{labels:DL,series:[{name:"Consumate",values:Dy.kcal,color:"--bike",width:1.5},{name:"Media 7 giorni",values:roll(Dy.kcal,7),color:"--ink2",width:2.5}],yfmt:v=>n0(v),tfmt:v=>n0(v)+" kcal",aria:"Calorie"});
+  lineChart($("kcal"),{labels:DL,series:[{name:"Consumate",values:Dy.kcal,color:"--bike",width:1.5},{name:"Media 7 giorni",values:roll(Dy.kcal,7),color:"--ink2",width:2.5}].concat(planK?[{name:"Piano (stima)",values:Dy.kcal.map(()=>planK),color:"--run",width:2,dash:"6 4"}]:[]),yfmt:v=>n0(v),tfmt:v=>n0(v)+" kcal",aria:"Calorie"});
 }
 /* il punteggio del sonno sta su una scala diversa: lo mostro solo nel riquadro al tocco */
 const _lc=lineChart; lineChart=function(host,o){ if(host.id=="sleep"){ const sc=o.series.pop(); _lc(host,o); const tip=host.querySelector(".tip");
