@@ -151,7 +151,6 @@ footer{font-size:12.5px;color:var(--muted)}
   <section id="coachsec" hidden>
     <div class="ctitle"><div><h2>Il piano del coach</h2><p class="sub" id="csub"></p></div><div id="ctabs" class="tabs"></div></div>
     <div class="pri" id="cpri"></div>
-    <div class="card" id="szcard" hidden><div class="ctitle"><div><h3>Le tue zone del nuoto</h3><p id="szsub"></p></div></div><div class="tbl"><table id="sztable"></table></div></div>
     <div class="days" id="cdays"></div>
   </section>
 
@@ -243,11 +242,11 @@ $("s1").textContent = "Gara: "+dlab(G.date);
 const SZ=D.swimzones;
 function zp(k){ const z=SZ&&SZ.zones[k]; if(!z) return ""; return z.fast? `${pace(z.fast)}–${pace(z.slow)}`:`sotto ${pace(z.slow)}`; }
 function zoneTag(txt){ if(!SZ) return txt; return txt.replace(/\b(A1|A2|B1|B2|C1|C2)\b(?![^<]*>)/g,(m)=>`${m} <span class="zt">${zp(m)}/100</span>`); }
-function woList(lines){
+function woList(lines,swim){
   let html="", open=false;
   lines.forEach(l=>{ const txt=l.replace(/\s*·\s*$/,"");
     if(/:\s*$/.test(txt) && txt.length<30){ if(open){html+="</ul>";open=false;} html+=`<div class="wh">${txt.replace(/:\s*$/,"")}</div>`; return; }
-    if(!open){html+="<ul>";open=true;} html+=`<li>${zoneTag(txt.replace(/^(\d+\s*x\s*[^·(]*)/i,"<strong>$1</strong>"))}</li>`; });
+    if(!open){html+="<ul>";open=true;} html+=`<li>${(swim?zoneTag:(x=>x))(txt.replace(/^(\d+\s*x\s*[^·(]*)/i,"<strong>$1</strong>"))}</li>`; });
   if(open) html+="</ul>"; return html;
 }
 const PRI=(function(){
@@ -276,7 +275,7 @@ if (D.coach){
         ${s.fuel? `<div class="fuel"><b>Integratori</b> ${s.fuel}</div>`:""}
         ${s.track? `<div class="did"><b>Pista aperta oggi:</b> ${s.track}</div>`:""}
         ${s.paces&&s.paces.length? `<div class="pace"><b>Ritmi e battito</b><ul>${s.paces.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:""}
-        ${s.detail&&s.detail.length? `<div class="wo"><b>Cosa fare · ${s.key}</b>${woList(s.detail)}</div>`:""}</div>`).join("");
+        ${s.detail&&s.detail.length? `<div class="wo"><b>Cosa fare · ${s.key}</b>${woList(s.detail,s.sport=="swim")}</div>`:""}</div>`).join("");
       const ex=d.extra.map(e=>`<div class="rest">+ ${SP[e.sport]} extra${e.km? " "+n1(e.km)+" km":""}</div>`).join("");
       const ml=(d.meals||[]).map(m=>`<li>${m}</li>`).join("");
       const evs=(d.events||[]).map(e=>`<li>${e.allday? "Tutto il giorno":e.time} · ${e.title}</li>`).join("");
@@ -287,12 +286,6 @@ if (D.coach){
   [...$("ctabs").children].forEach((b,i)=>b.addEventListener("click",()=>showWeek(i)));
   showWeek(0);
 }
-
-if(SZ){ $("szcard").hidden=false;
-  $("szsub").textContent=`Calcolate dal tuo ritmo di soglia (B1) di circa ${pace(SZ.css)}/100 m. ${SZ.source}`;
-  const rep=(k,m)=>{ const z=SZ.zones[k]; const f=s=>{s=Math.round(s*m/100); return s>=60? Math.floor(s/60)+"'"+String(s%60).padStart(2,"0")+"''" : s+"''";}; return z.fast? f(z.fast)+"–"+f(z.slow) : "sotto "+f(z.slow); };
-  $("sztable").innerHTML=`<thead><tr><th>Zona</th><th>Passo /100 m</th><th>50 m</th><th>100 m</th><th>200 m</th><th style="text-align:left">A cosa serve</th></tr></thead><tbody>`+
-    Object.keys(SZ.zones).map(k=>`<tr><td><strong>${k}</strong></td><td>${zp(k)}</td><td>${rep(k,50)}</td><td>${rep(k,100)}</td><td>${k.startsWith("C")?"–":rep(k,200)}</td><td style="text-align:left;white-space:normal">${SZ.zones[k].desc}</td></tr>`).join("")+`</tbody>`; }
 
 /* ---------------- tappe ---------------- */
 $("tests").innerHTML = D.tests.map(t=>{
