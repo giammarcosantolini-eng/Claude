@@ -431,9 +431,14 @@ def main():
                     st = hm2m(x0["slot"].split("–")[0])
                     at = st - 180
                     name = x0["text"].split(" · ")[0]
-                    if at < 5 * 60 + 15:
+                    wake = 6 * 60 if day.weekday() < 5 else 7 * 60  # non si sveglia prima (nel weekend mai prima delle 7)
+                    if at < wake:
                         beet = ("Frullato di barbabietola la sera prima, a cena verso le 20: %s è troppo presto per prenderlo 3 ore prima. "
                                 "Non più tardi, per non doverti alzare di notte." % name)
+                        if "test" in x0["text"].lower():
+                            beet = ("Frullato di barbabietola sabato a colazione e sabato a cena verso le 20 (anche venerdì a colazione, se riesci): "
+                                    "con la sveglia alle 7 non c'è tempo per prenderlo 3 ore prima, ma con 2-3 giorni di carico il nitrato resta alto fino alla gara. "
+                                    "Domenica mattina niente frullato: troppo vicino al via, rischi problemi di stomaco.")
                     elif day.weekday() < 5 and WORK[0] - 30 < at < WORK[1]:
                         beet = ("Frullato di barbabietola a colazione (al lavoro non puoi prenderlo 3 ore prima di %s). "
                                 "Prendilo anche il giorno prima: con il carico il nitrato resta alto fino a sera." % name)
