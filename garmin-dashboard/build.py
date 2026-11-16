@@ -47,12 +47,15 @@ def read_json(path, default=None):
 
 
 def load_folder(name):
-    out, folder = [], os.path.join(DATA, name)
+    """Tutti gli elementi delle finestre scaricate, senza doppioni per data."""
+    seen, folder = {}, os.path.join(DATA, name)
     if os.path.isdir(folder):
         for f in sorted(os.listdir(folder)):
             if f.endswith(".json"):
-                out += read_json(os.path.join(folder, f), []) or []
-    return out
+                for x in read_json(os.path.join(folder, f), []) or []:
+                    k = x.get("calendarDate") or x.get("summaryDate") if isinstance(x, dict) else None
+                    seen[k or id(x)] = x
+    return list(seen.values())
 
 
 def g(d, *keys):
@@ -345,11 +348,29 @@ def main():
                 w["days"][k].remove(src)
                 nk = (dt.date.fromisoformat(o["new_date"]) - ws).days
                 nb = dict(src, start=o["new_slot"].split("–")[0], slot=o["new_slot"],
-                          moved="da %s %s" % (GGN[k], src["slot"]), why=o.get("why", ""))
+                          moved="da %s %s" % (GGN[k], src["slot"]), why=o.get("why", ""), ok=o.get("ok", False),
+                          meal=o.get("meal"))
                 if o.get("new_text"):
                     nb["text"] = o["new_text"]
                 w["days"][nk].append(nb)
                 w["days"][nk].sort(key=lambda x: x["start"])
+
+        planK = sum(m.get("kcal", 0) for m in nut.get("meals", []))
+        ks = [k for k in dkeys if (today - dt.timedelta(days=28)).isoformat() <= k < today.isoformat()]
+        rest = sum(days[k].get("kcal") or 0 for k in ks) and \
+            sum(g(x, "calories", "burnedResting") or 0 for x in load_folder("daily") if x.get("calendarDate") in ks) / max(1, len(ks))
+        rest = rest or 2000
+        bmr_min = rest / 1440
+        RATE = {"swim": 8.4, "run": 12.8, "gym": 4.6, "bike": 10.0, "multi": 10.0, "other": 6.0}
+        RATE_KEY = {"B1": 12.2, "B2": 8.4, "B3": 7.2}
+
+        def kcal_est(sess):
+            tot = rest + 50
+            for s in sess:
+                a, z = s["_r"]
+                r = RATE_KEY.get(s["key"], RATE.get(s["sport"], 6.0))
+                tot += max(0, r - bmr_min) * (z - a)
+            return round(tot)
 
         out_weeks = []
         for w in plan["weeks"]:
@@ -380,7 +401,7 @@ def main():
                     else: st = "todo"
                     ftxt, fkcal = fuel(b, sp, key)
                     s0, e0 = ranges[bi]
-                    clash = [x for x in ev if not x["allday"] and not (e0 + 30 <= x["s"] or s0 >= x["e"])]
+                    clash = [] if b.get("ok") else [x for x in ev if not x["allday"] and not (e0 + 30 <= x["s"] or s0 >= x["e"])]
                     move = None
                     if clash:
                         dur = e0 - s0
@@ -393,11 +414,16 @@ def main():
                                 move = "%s–%02d:%02d" % (cand, (cs + dur) // 60, (cs + dur) % 60)
                                 break
                     sess.append({"slot": b["slot"], "text": b["text"], "sport": sp, "key": key, "fuel": ftxt, "fkcal": fkcal,
-                                 "clash": [("%s %s" % (x["title"], x["time"])) for x in clash], "move": move, "moved": b.get("moved"), "why": b.get("why"),
+                                 "clash": [("%s %s" % (x["title"], x["time"])) for x in clash], "move": move, "_r": (s0, e0), "moved": b.get("moved"), "why": b.get("why"),
                                  "detail": lib.get(key, []) if key else [], "status": st,
                                  "did": {"km": round(match["km"], 2), "sec": round(match["sec"]), "hr": match["hr"]} if match else None})
                 extra = [{"sport": a["sport"], "km": round(a["km"], 2), "sec": round(a["sec"])} for a in avail]
-                days_out.append({"date": day.isoformat(), "sessions": sess, "extra": extra, "meals": meals_for(blocks), "events": [x for x in ev if not x.get("work")],
+                real = days.get(day.isoformat(), {}).get("kcal") if day < today else None
+                kout = real or kcal_est(sess)
+                for x in sess:
+                    x.pop("_r", None)
+                days_out.append({"date": day.isoformat(), "sessions": sess, "kout": kout, "kreal": bool(real),
+                                 "kin": planK + sum(x["fkcal"] for x in sess), "extra": extra, "meals": [x["meal"] for x in blocks if x.get("meal")] or meals_for(blocks), "events": [x for x in ev if not x.get("work")],
                                  "fuel_kcal": sum(x["fkcal"] for x in sess)})
             out_weeks.append({"label": w["label"], "note": w.get("note", ""), "start": w["start"], "days": days_out})
         coach = out_weeks or None

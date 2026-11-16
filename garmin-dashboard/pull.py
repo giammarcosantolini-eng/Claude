@@ -139,6 +139,11 @@ def pull_ranged(name, label, start, end, days, make_path, extract):
     anchor = dt.date(2000, 1, 1)  # finestre allineate: stessi nomi file a ogni giro
     start = anchor + dt.timedelta(days=((start - anchor).days // days) * days)
     wins = list(windows(start, end, days))
+    keep = {"%s_%s.json" % (a, b) for a, b in wins}
+    if os.path.isdir(folder):  # tolgo finestre vecchie con altri confini (eviterebbero doppioni)
+        for f in os.listdir(folder):
+            if f.endswith(".json") and f not in keep and f[:10] >= wins[0][0].isoformat():
+                os.remove(os.path.join(folder, f))
     for i, (a, b) in enumerate(wins, 1):
         f = os.path.join(folder, "%s_%s.json" % (a, b))
         if os.path.exists(f) and (today - b).days > FINAL_AFTER:

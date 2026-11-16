@@ -113,6 +113,7 @@ td .delta{font-size:12px;margin-left:6px}
 .evs{font-size:12.5px;color:var(--ink2);border:1px dashed var(--line);border-radius:8px;padding:7px 9px}
 .evs b{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
 .evs ul{margin:0;padding-left:15px}
+.kday{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--ink2);border-top:1px solid var(--line);padding-top:8px}
 .mv{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:1px 7px;margin-left:4px}
 .clash{font-size:12.5px;color:var(--ink);background:var(--warn-bg);border-radius:8px;padding:7px 9px;line-height:1.4}
 .clash b{display:block;color:var(--warn);font-size:12px}
@@ -239,7 +240,7 @@ if (D.coach){
       const ex=d.extra.map(e=>`<div class="rest">+ ${SP[e.sport]} extra${e.km? " "+n1(e.km)+" km":""}</div>`).join("");
       const ml=(d.meals||[]).map(m=>`<li>${m}</li>`).join("");
       const evs=(d.events||[]).map(e=>`<li>${e.allday? "Tutto il giorno":e.time} · ${e.title}</li>`).join("");
-      return `<div class="day${d.date==D.today?" today":""}"><h4>${GG[i]} <span>${dlab(d.date)}</span></h4>${evs?`<div class="evs"><b>Impegni</b><ul>${evs}</ul></div>`:""}${sess||'<div class="rest">Riposo</div>'}${ex}${ml?`<div class="meals"><b>Pasti</b><ul>${ml}</ul></div>`:""}</div>`;
+      return `<div class="day${d.date==D.today?" today":""}"><h4>${GG[i]} <span>${dlab(d.date)}</span></h4>${evs?`<div class="evs"><b>Impegni</b><ul>${evs}</ul></div>`:""}${sess||'<div class="rest">Riposo</div>'}${ex}${ml?`<div class="meals"><b>Pasti</b><ul>${ml}</ul></div>`:""}${d.kout?`<div class="kday"><span>Consumi ${d.kreal?"":"~"}${n0(d.kout)}</span><span>Assumi ~${n0(d.kin)}</span><span class="${d.kin-d.kout<-300?"down":"muted"}">${d.kin-d.kout>=0?"+":"−"}${n0(Math.abs(d.kin-d.kout))} kcal</span></div>`:""}</div>`;
     }).join("");
   };
   $("ctabs").innerHTML=D.coach.length>1? D.coach.map((w,i)=>`<button type="button" id="cw${i}">${i==0?"Questa settimana":"Prossima"}</button>`).join(""):"";
