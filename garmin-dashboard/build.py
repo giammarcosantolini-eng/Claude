@@ -423,12 +423,30 @@ def main():
                                  "detail": lib.get(key, []) if key else [], "status": st,
                                  "did": {"km": round(match["km"], 2), "sec": round(match["sec"]), "hr": match["hr"]} if match else None})
                 extra = [{"sport": a["sport"], "km": round(a["km"], 2), "sec": round(a["sec"])} for a in avail]
+                # frullato di barbabietola: 3 ore prima degli sforzi importanti
+                beet = None
+                hard = [x for x in sess if x["key"] in ("C2", "C3", "C5", "B1") or "test" in x["text"].lower()]
+                if hard and nut.get("beet"):
+                    x0 = hard[0]
+                    st = hm2m(x0["slot"].split("–")[0])
+                    at = st - 180
+                    name = x0["text"].split(" · ")[0]
+                    if at < 5 * 60 + 15:
+                        beet = ("Frullato di barbabietola la sera prima, a cena verso le 20: %s è troppo presto per prenderlo 3 ore prima. "
+                                "Non più tardi, per non doverti alzare di notte." % name)
+                    elif day.weekday() < 5 and WORK[0] - 30 < at < WORK[1]:
+                        beet = ("Frullato di barbabietola a colazione (al lavoro non puoi prenderlo 3 ore prima di %s). "
+                                "Prendilo anche il giorno prima: con il carico il nitrato resta alto fino a sera." % name)
+                    else:
+                        beet = "Frullato di barbabietola alle %d:%02d, 3 ore prima di %s." % (at // 60, at % 60, name)
+                        if "test" in x0["text"].lower():
+                            beet += " Prendine una dose anche venerdì e sabato a colazione: con 2-3 giorni di carico l'effetto è più forte."
                 real = days.get(day.isoformat(), {}).get("kcal") if day < today else None
                 kout = real or kcal_est(sess)
                 for x in sess:
                     x.pop("_r", None)
                 days_out.append({"date": day.isoformat(), "sessions": sess, "kout": kout, "kreal": bool(real),
-                                 "kin": planK + sum(x["fkcal"] for x in sess), "extra": extra, "meals": [x["meal"] for x in blocks if x.get("meal")] or meals_for(blocks), "events": [x for x in ev if not x.get("work")],
+                                 "kin": planK + sum(x["fkcal"] for x in sess) + (nut["beet"]["kcal"] if beet else 0), "beet": beet, "extra": extra, "meals": [x["meal"] for x in blocks if x.get("meal")] or meals_for(blocks), "events": [x for x in ev if not x.get("work")],
                                  "fuel_kcal": sum(x["fkcal"] for x in sess)})
             out_weeks.append({"label": w["label"], "note": w.get("note", ""), "start": w["start"], "days": days_out})
         coach = out_weeks or None

@@ -270,7 +270,7 @@ if (D.coach){
       const ex=d.extra.map(e=>`<div class="rest">+ ${SP[e.sport]} extra${e.km? " "+n1(e.km)+" km":""}</div>`).join("");
       const ml=(d.meals||[]).map(m=>`<li>${m}</li>`).join("");
       const evs=(d.events||[]).map(e=>`<li>${e.allday? "Tutto il giorno":e.time} · ${e.title}</li>`).join("");
-      return `<div class="day${d.date==D.today?" today":""}"><h4>${GG[i]} <span>${dlab(d.date)}</span></h4>${evs?`<div class="evs"><b>Impegni</b><ul>${evs}</ul></div>`:""}${sess||'<div class="rest">Riposo</div>'}${ex}${ml?`<div class="meals"><b>Pasti</b><ul>${ml}</ul></div>`:""}${d.kout?`<div class="kday"><span>Consumi ${d.kreal?"":"~"}${n0(d.kout)}</span><span>Assumi ~${n0(d.kin)}</span><span class="${d.kin-d.kout<-300?"down":"muted"}">${d.kin-d.kout>=0?"+":"−"}${n0(Math.abs(d.kin-d.kout))} kcal</span></div>`:""}</div>`;
+      return `<div class="day${d.date==D.today?" today":""}"><h4>${GG[i]} <span>${dlab(d.date)}</span></h4>${evs?`<div class="evs"><b>Impegni</b><ul>${evs}</ul></div>`:""}${sess||'<div class="rest">Riposo</div>'}${ex}${ml||d.beet?`<div class="meals"><b>Pasti</b><ul>${d.beet?`<li><strong>${d.beet}</strong></li>`:""}${ml}</ul></div>`:""}${d.kout?`<div class="kday"><span>Consumi ${d.kreal?"":"~"}${n0(d.kout)}</span><span>Assumi ~${n0(d.kin)}</span><span class="${d.kin-d.kout<-300?"down":"muted"}">${d.kin-d.kout>=0?"+":"−"}${n0(Math.abs(d.kin-d.kout))} kcal</span></div>`:""}</div>`;
     }).join("");
   };
   $("ctabs").innerHTML=D.coach.length>1? D.coach.map((w,i)=>`<button type="button" id="cw${i}">${i==0?"Questa settimana":"Prossima"}</button>`).join(""):"";
