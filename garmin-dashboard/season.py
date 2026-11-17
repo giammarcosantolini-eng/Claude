@@ -446,7 +446,7 @@ def special(d, s, rp):
                     "È il ritmo della corsa di Jesolo più un margine: devi chiudere con la sensazione di averne ancora",
                     "Prova l'alimentazione della gara: 1 gel ogni 25-30'",
                     "Orario indicativo: dimmi quale mezza è e lo correggo"],
-                    "Frullato di barbabietola alle 6:30. 1 gel ogni 25-30', acqua ai ristori.", km=21.1, sport="run")]
+                    "Frullato di barbabietola venerdì sera a cena. 1 gel ogni 25-30', acqua ai ristori.", km=21.1, sport="run")]
     if iso == "2027-04-04":
         return [bike_long(d, 120, None, start="09:00")]
     if iso == "2027-04-10":
