@@ -440,15 +440,22 @@ def special(d, s, rp):
     if iso == "2027-03-28":
         return s + [ow(d, "15:00", 30, "Domenica di Pasqua: se la spiaggia non è raggiungibile, sposta a lunedì 29 (festivo)")]
     if iso == "2027-04-03":
-        return [ow(d, "07:30", 20, "Solo 20' facili: dopo c'è la mezza"),
-                race_ev("Mezza maratona di allenamento", "09:30", 100, "allenamento", [
+        return [S("swim", "Test nuoto in mare · Ibiza", "10:00", 45, [
+                    "Riscaldamento: 10' sciolti con la muta",
+                    "TEST: 1.900 m continui a ritmo gara %s, come a Jesolo: partenza controllata, avvistamenti ogni 6-8 bracciate" % sw(d, "RACE"),
+                    "Obiettivo 34-36'. Avvia il Garmin in modalità acque libere e segna il tempo: mi serve per Jesolo",
+                    "Non a tutta: stasera c'è la mezza",
+                    "Acqua a Ibiza ad aprile circa 16 °C: muta e cuffia in neoprene, mai da solo"],
+                    fuel="Colazione normale 2 ore prima. Dopo: pranzo ricco di carboidrati entro le 14:00.", key=False, ok=True),
+                race_ev("Ibiza Media Maratón (di allenamento)", "18:00", 100, "allenamento", [
                     "ALLENAMENTO, non gara: km 1-10 a %s/km, km 11-21 a %s/km" % (P(rp["HM"] + 25), P(rp["HM"] + 12)),
-                    "È il ritmo della corsa di Jesolo più un margine: devi chiudere con la sensazione di averne ancora",
+                    "Arrivi con il nuoto della mattina nelle gambe, come a Jesolo arrivi con nuoto e bici: chiudi con la sensazione di averne ancora",
                     "Prova l'alimentazione della gara: 1 gel ogni 25-30'",
-                    "Orario indicativo: dimmi quale mezza è e lo correggo"],
-                    "Frullato di barbabietola venerdì sera a cena. 1 gel ogni 25-30', acqua ai ristori.", km=21.1, sport="run")]
+                    "Partenza alle 18:00 nel 2026 (Sant Josep): l'orario 2027 non è ancora confermato, e alcuni siti indicano il 10 aprile invece del 3"],
+                    "Pranzo entro le 14:00, uno spuntino leggero alle 16:00. Frullato: a Ibiza usa uno shot di barbabietola da 70 ml alle 15:00. 1 gel ogni 25-30', acqua ai ristori.",
+                    km=21.1, sport="run")]
     if iso == "2027-04-04":
-        return [bike_long(d, 120, None, start="09:00")]
+        return [rest("Rientro da Ibiza. Se te la senti, 30' di bici o corsa sciolta, altrimenti riposo.")]
     if iso == "2027-04-10":
         return [bike_long(d, 180, "2 x 30' a %s (ritmo gara)" % W(d, .78, .82), start="08:30")]
     if iso == "2027-04-11":
