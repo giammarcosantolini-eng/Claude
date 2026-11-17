@@ -156,13 +156,25 @@ def run_easy(d, mins, strides=0, start="19:00", title="Corsa · facile"):
 
 def track(d, reps, dist, pace_lo, pace_hi, rec, title="Pista · ripetute", note=""):
     work = reps * dist / 1000 * (pace_lo + pace_hi) / 2 / 60 + (reps - 1) * rec / 60
-    dur = int(round(12 + 8 + work + 5))
-    km = round(3 + reps * dist / 1000 + 1.5, 1)
-    return S("run", title, "18:35" if d.weekday() == 2 else "19:00", dur, [
-        "Riscaldamento: 12' correndo dal lavoro alla pista a %s" % E(d), "Slanci, andature, 4 allunghi",
-        "%d x %d m a %s–%s/km, recupero %s camminando o corsa lentissima (FC sotto 130)" % (reps, dist, P(pace_lo), P(pace_hi), "%d'%02d''" % (rec // 60, rec % 60)),
-        "Defaticamento: 5' facili" + (" (la pista chiude alle 19:30: se sfori, fallo fuori)" if d.weekday() == 2 else "")] + ([note] if note else []), km=km, fuel=F_Q_RUN, key=True,
-        alts=["19:00"], ok=d.weekday() == 2)
+    dur = int(round(10 + 5 + work + 5))
+    km = round(2.5 + reps * dist / 1000 + 1, 1)
+    main = "%d x %d m a %s–%s/km, recupero %s camminando o corsa lentissima (FC sotto 130)" % (
+        reps, dist, P(pace_lo), P(pace_hi), "%d'%02d''" % (rec // 60, rec % 60))
+    wed = d.weekday() == 2 and d not in HOLIDAYS
+    if wed and dur <= 50:  # mercoledì esce alle 18:30: in pista dalle 18:40, chiude alle 19:30
+        return S("run", title, "18:40", dur, [
+            "Riscaldamento in pista: 10' a %s" % E(d), "5' tra slanci, andature e 3 allunghi", main,
+            "Defaticamento: 5' facili, entro le 19:30 quando chiude la pista"] + ([note] if note else []),
+            km=km, fuel=F_Q_RUN, key=True, alts=["19:00"], ok=True)
+    if d in HOLIDAYS or d.weekday() >= 5:
+        return S("run", title, "10:30", dur, [
+            "Riscaldamento in pista: 10' a %s" % E(d), "5' tra slanci, andature e 3 allunghi", main, "Defaticamento: 5' facili"]
+            + ([note] if note else []), km=km, fuel=F_Q_RUN, key=True, alts=["15:00"], ok=True)
+    why = "la pista chiude alle 19:30 e la seduta dura %d'" % dur if wed else "la sera la pista è aperta solo fino alle 19:30"
+    return S("run", title.replace("Pista", "Su strada"), "19:00", dur, [
+        "Su strada da casa (%s): scegli un tratto piatto e misura i giri con il tasto giro o il giro automatico ogni %d m" % (why, dist),
+        "Riscaldamento: 10' a %s" % E(d), "5' tra slanci, andature e 3 allunghi", main, "Defaticamento: 5' facili"]
+        + ([note] if note else []), km=km, fuel=F_Q_RUN, key=True, alts=["20:30", "06:00"])
 
 
 def road_tempo(d, blocks, km_each, pace, rec, start="19:00", title="Corsa · soglia su strada"):
@@ -237,7 +249,7 @@ def away(note):
 WEEKS = [
     ("2026-11-30", "rec1", "Recupero dopo Fiumicino e test FTP"),
     ("2026-12-07", "base", "Base 1"), ("2026-12-14", "base", "Base 2"), ("2026-12-21", "base", "Base 3 · Natale"),
-    ("2026-12-28", "rec", "Scarico"),
+    ("2026-12-28", "base", "Base 4 · Capodanno"),
     ("2027-01-04", "b10", "Specifico 10 km"), ("2027-01-11", "t10", "Scarico e gara 10 km"),
     ("2027-01-18", "bhm", "Verso la mezza 1"), ("2027-01-25", "bhm", "Verso la mezza 2 · test FTP"),
     ("2027-02-01", "bhm", "Verso la mezza 3"), ("2027-02-08", "rec", "Scarico"),
@@ -260,20 +272,21 @@ def week_days(ws, typ, k):
         rp = run_p(d)
         s = []
         if typ == "rec1":
-            s = [[swim_easy(d, "06:30", 2000), run_easy(d, 0) if False else rest("Pomeriggio libero: il giorno dopo la gara solo nuoto sciolto.")],
-                 [run_easy(d, 30, 0)],
-                 [ftp_test(d)],
-                 [swim_end(d, 2500)],
+            s = [[swim_easy(d, "06:30", 2400), bike_z2(d, 45, "19:00", drills=False)],
+                 [gym(d, "Upper", light=True), run_easy(d, 40, 6)],
+                 [ftp_test(d), run_easy(d, 35)],
+                 [swim_end(d, 3000), bike_z2(d, 60, "19:00")],
                  [], [], []][i]
         elif typ == "base":
-            s = [[swim_css(d, k), run_easy(d, 40 + 5 * k, 6)],
-                 [gym(d, "Upper"), bike_q(d, [3, 3, 2][k], [10, 12, 20][k], .88, .92, 5, "sweet spot")],
-                 [bike_z2(d, 45), track(d, *[(6, 800, rp["I"] - 2, rp["I"] + 4, 120), (5, 1000, rp["I"], rp["I"] + 6, 150),
-                                             (8, 600, rp["I"] - 6, rp["I"], 90)][k])],
-                 [swim_end(d, [3000, 3200, 3400][k])] + ([run_easy(d, 35)] if k == 2 else []),
+            s = [[swim_css(d, k), run_easy(d, [45, 45, 50, 50][k], 6)],
+                 [gym(d, "Upper"), bike_q(d, [3, 3, 2, 3][k], [12, 15, 20, 15][k], .88, .92, 5, "sweet spot")],
+                 [bike_z2(d, 60), track(d, *[(6, 800, rp["I"] - 2, rp["I"] + 4, 120), (5, 1000, rp["I"], rp["I"] + 6, 150),
+                                             (8, 600, rp["I"] - 6, rp["I"], 90), (6, 1000, rp["I"], rp["I"] + 5, 120)][k])],
+                 [swim_end(d, [3200, 3400, 3500, 3500][k]), run_easy(d, [35, 40, 40, 45][k])],
                  [gym(d, "Lower")],
-                 [bike_long(d, [120, 135, 150][k], [None, "2 x 10' a %s (80-85%% FTP)" % W(d, .8, .85), "3 x 10' a %s (80-85%% FTP)" % W(d, .8, .85)][k], brick=10)],
-                 [long_run(d, [14, 15, 16][k]), swim_easy(d)]][i]
+                 [bike_long(d, [150, 165, 180, 180][k], [None, "2 x 15' a %s (80-85%% FTP)" % W(d, .8, .85), "3 x 15' a %s (80-85%% FTP)" % W(d, .8, .85),
+                                                       "3 x 20' a %s (80-85%% FTP)" % W(d, .8, .85)][k], brick=15)],
+                 [long_run(d, [16, 17, 18, 18][k]), swim_easy(d, "17:00", 2500)]][i]
         elif typ == "rec":
             s = [[swim_easy(d, "06:30", 2400)], [bike_z2(d, 45, "19:00", drills=False)],
                  [run_easy(d, 35, 6)], [swim_end(d, 2500)], [rest()],
