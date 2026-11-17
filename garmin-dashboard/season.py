@@ -562,8 +562,8 @@ def main():
                 x0 = key[0]
                 a = hm(x0["slot"].split("–")[0])
                 wake = 6 * 60 if d.weekday() < 5 else 7 * 60
-                if x0["sport"] == "race" or "GARA" in x0["title"]:
-                    beet = "Frullato di barbabietola: a colazione e a cena il giorno prima" + (", e alle 5:00 con la colazione." if x0["sport"] == "race" else ".")
+                if "IRONMAN" in x0["title"] or "GARA" in x0["title"]:
+                    beet = "Frullato di barbabietola: a colazione e a cena il giorno prima" + (", e alle 5:00 con la colazione." if "IRONMAN" in x0["title"] else ".")
                 elif a - 180 < wake:
                     beet = "Frullato di barbabietola la sera prima, a cena verso le 20."
                 elif work and 8 * 60 + 10 < a - 180 < 19 * 60:
