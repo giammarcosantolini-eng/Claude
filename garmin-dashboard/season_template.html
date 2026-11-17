@@ -146,9 +146,9 @@ function show(i){
     const ev=d.events.length?`<div class="evs"><b>Impegni</b><ul>${d.events.map(e=>`<li>${e.time?e.time+" · ":""}${esc(e.title)}</li>`).join("")}</ul></div>`:"";
     const ss=d.sessions.map(s=>{
       const col=`var(--${s.sport in SPN?s.sport:"rest"})`;
-      return `<div class="sess${s.sport=="race"||/GARA/.test(s.title)?" race":""}" style="border-left-color:${col}">
+      return `<div class="sess${s.sport=="race"||s.kind||/GARA/.test(s.title)?" race":""}" style="border-left-color:${col}">
         ${s.slot?`<div class="t">${s.slot}${s.dur?` · ${s.dur}'`:""}${s.km?` · ${String(s.km).replace(".",",")} km`:""}${s.moved?` <span class="mv">${esc(s.moved)}</span>`:""}</div>`:""}
-        <div class="n">${esc(s.title)}</div>
+        <div class="n">${esc(s.title)}${s.kind?` <span class="chip ${s.kind=="test"?"bad":"neutral"}">${s.kind=="test"?"Gara test":"Solo allenamento"}</span>`:""}</div>
         ${s.clash?`<div class="clash">Si sovrappone a un impegno: decidi tu se spostarla</div>`:""}
         ${s.track?`<div class="small"><b>Pista aperta:</b> ${s.track}</div>`:""}
         ${s.steps&&s.steps.length&&s.sport!="rest"&&s.sport!="away"?`<div class="wo"><b>Cosa fare</b><ul>${s.steps.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:`<div class="small">${esc((s.steps||[]).join(" "))}</div>`}

@@ -255,9 +255,9 @@ WEEKS = [
     ("2027-02-01", "bhm", "Verso la mezza 3"), ("2027-02-08", "rec", "Scarico"),
     ("2027-02-15", "shm", "Specifico mezza"), ("2027-02-22", "thm", "Scarico e Roma-Ostia"),
     ("2027-03-01", "rechm", "Recupero dopo la mezza"),
-    ("2027-03-08", "spec", "Specifico 70.3 · 1"), ("2027-03-15", "spec", "Specifico 70.3 · 2"),
-    ("2027-03-22", "spec", "Specifico 70.3 · 3 · simulazione gara"), ("2027-03-29", "recftp", "Scarico e test FTP"),
-    ("2027-04-05", "spec", "Specifico 70.3 · 4 · picco"), ("2027-04-12", "taper", "Scarico pre-gara"),
+    ("2027-03-08", "spec", "Specifico 70.3 · 1 · duathlon test"), ("2027-03-15", "spec", "Specifico 70.3 · 2"),
+    ("2027-03-22", "spec", "Specifico 70.3 · 3 · simulazione gara"), ("2027-03-29", "recftp", "Scarico, test FTP e mezza di allenamento"),
+    ("2027-04-05", "spec", "Specifico 70.3 · 4 · triathlon sprint test"), ("2027-04-12", "taper", "Scarico pre-gara"),
     ("2027-04-19", "race", "Settimana gara"),
 ]
 PHASE = {"rec1": "Recupero", "base": "Base", "rec": "Scarico", "b10": "10 km", "t10": "10 km", "bhm": "Mezza",
@@ -394,8 +394,74 @@ def week_days(ws, typ, k):
                      "Totale stimato: 5:20-5:30"],
                      fuel="Bici: 80-90 g di carboidrati l'ora (2 gel l'ora + 1 Carbo Bar nella prima ora), gel con caffeina a 2h e a 2h40, 1 Electrolytes Boost per borraccia. Corsa: 1 gel ogni 25-30' (caffeina al km 10), acqua a ogni ristoro.", key=True)],
                  [rest("Recupero. Camminata, viaggio di ritorno. Festa!")]][i]
-        out.append((d, s or []))
+        s = special(d, s or [], rp)
+        out.append((d, s))
     return out
+
+
+# ------------------------------------------------------------------ gare del Lazio e acque libere (date 2027 stimate dal calendario 2026)
+def race_ev(title, start, dur, kind, steps, fuel, km=None, sport="race"):
+    x = S(sport, title, start, dur, steps, km=km, fuel=fuel, key=True, ok=True)
+    x["kind"] = kind  # "test" o "allenamento"
+    return x
+
+
+def ow(d, start, mins, extra=""):
+    return S("swim", "Acque libere", start, mins, [
+        "%d' in mare con la muta e la cuffia in neoprene: l'acqua ad aprile è sui 14-16 °C" % mins,
+        "I primi 5' piano per abituarti al freddo, poi tratti da 3-4' a ritmo gara %s" % sw(d, "RACE"),
+        "Avvistamenti ogni 6-8 bracciate, prova a nuotare dritto verso un punto a terra",
+        "Mai da solo: in compagnia o con la boa di sicurezza"] + ([extra] if extra else []), fuel="Una bevanda calda dopo.",
+        alts=["16:00", "11:00"], ok=True)
+
+
+def special(d, s, rp):
+    iso = d.isoformat()
+    if iso == "2027-02-20":  # sabato: il lungo con ritmo mezza va qui
+        return [long_run(d, 16, "Dal km 5 al km 13: 8 km a %s/km (ritmo mezza)" % P(rp["HM"] + 2), start="09:00")]
+    if iso == "2027-02-21":
+        return [race_ev("Duathlon di Carnevale · Sabaudia", "09:30", 80, "allenamento", [
+            "Duathlon sprint: circa 5 km corsa, 20 km bici, 2,5 km corsa",
+            "SOLO ALLENAMENTO: tra 7 giorni c'è la Roma-Ostia. Corsa a %s/km (ritmo mezza, non di più), bici a %s" % (P(rp["HM"]), W(d, .8, .88)),
+            "Usalo per provare i cambi e la bici dopo la corsa",
+            "Data stimata dal 2026 (22 febbraio): verifica sul calendario FITRI 2027"],
+            "1 gel con sodio 15' prima del via. Acqua in bici.", km=7.5)]
+    if iso == "2027-03-13":  # sabato prima del duathlon test: niente brick lungo
+        return [bike_long(d, 120, None, start="09:00")]
+    if iso == "2027-03-14":
+        return [race_ev("Duathlon Sprint di Ostia", "09:30", 80, "test", [
+            "Duathlon sprint: circa 5 km corsa, 20 km bici, 2,5 km corsa",
+            "TEST A TUTTA: corsa 1 a %s/km, bici a %s (95-100%% FTP), corsa 2 quello che resta" % (P(rp["K10"] + 5), W(d, .95, 1.0)),
+            "Cosa misura: quanto tieni in bici a tutta e come corri dopo. Segna i tempi dei cambi",
+            "Data stimata dal 2026 (15 marzo): verifica sul calendario FITRI 2027"],
+            "Colazione 3 ore prima, frullato di barbabietola. 1 gel con sodio 15' prima del via.", km=7.5)]
+    if iso == "2027-03-21":
+        return s + [ow(d, "15:00", 25)]
+    if iso == "2027-03-28":
+        return s + [ow(d, "15:00", 30, "Domenica di Pasqua: se la spiaggia non è raggiungibile, sposta a lunedì 29 (festivo)")]
+    if iso == "2027-04-03":
+        return [ow(d, "07:30", 20, "Solo 20' facili: dopo c'è la mezza"),
+                race_ev("Mezza maratona di allenamento", "09:30", 100, "allenamento", [
+                    "ALLENAMENTO, non gara: km 1-10 a %s/km, km 11-21 a %s/km" % (P(rp["HM"] + 25), P(rp["HM"] + 12)),
+                    "È il ritmo della corsa di Jesolo più un margine: devi chiudere con la sensazione di averne ancora",
+                    "Prova l'alimentazione della gara: 1 gel ogni 25-30'",
+                    "Orario indicativo: dimmi quale mezza è e lo correggo"],
+                    "Frullato di barbabietola alle 6:30. 1 gel ogni 25-30', acqua ai ristori.", km=21.1, sport="run")]
+    if iso == "2027-04-04":
+        return [bike_long(d, 120, None, start="09:00")]
+    if iso == "2027-04-10":
+        return [bike_long(d, 180, "2 x 30' a %s (ritmo gara)" % W(d, .78, .82), start="08:30")]
+    if iso == "2027-04-11":
+        return [race_ev("Triathlon Sprint · Santa Marinella", "10:00", 80, "test", [
+            "Triathlon sprint: 750 m nuoto, 20 km bici, 5 km corsa",
+            "TEST GENERALE PER JESOLO a 13 giorni: muta, partenza in mare, avvistamenti, cambi, alimentazione",
+            "Nuoto a %s, bici a %s (90-95%% FTP), corsa a %s/km" % (sw(d, "B1"), W(d, .9, .95), P(rp["K10"] + 5)),
+            "Dopo la gara: 1h30 di bici facile a %s per completare il volume della settimana" % W(d, .6, .7),
+            "Data stimata dal 2026 (12 aprile): verifica sul calendario FITRI 2027"],
+            "Colazione 3 ore prima, frullato di barbabietola. 1 gel con sodio 15' prima del via.", km=5)]
+    if iso == "2027-04-18":
+        return s + [ow(d, "15:00", 30, "Ultima uscita in mare prima di Jesolo: usa la muta della gara")]
+    return s
 
 
 # ------------------------------------------------------------------ calendario, lavoro, conflitti
