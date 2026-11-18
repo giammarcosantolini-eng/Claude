@@ -6,12 +6,13 @@ Legge: data/calendar/season.json (impegni), data/coach/strength.json, data/coach
 import datetime as dt
 import json
 import os
+import re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "data")
 D = dt.date
 START, RACE = D(2026, 11, 30), D(2027, 4, 24)
-HOLIDAYS = {D(2026, 12, 8), D(2026, 12, 25), D(2026, 12, 26), D(2027, 1, 1), D(2027, 1, 6),
+HOLIDAYS = {D(2026, 12, 4), D(2026, 12, 8), D(2026, 12, 25), D(2026, 12, 26), D(2027, 1, 1), D(2027, 1, 6),
             D(2027, 3, 29), D(2027, 4, 25)}
 GG = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"]
 
@@ -110,24 +111,17 @@ def swim_css(d, k, kind="base"):
                 "5 x 400: dispari ritmo gara %s, pari B1 %s, recupero 20''" % (sw(d, "RACE"), sw(d, "B1")),
                 "2 x 900 a ritmo gara %s, recupero 1'" % sw(d, "RACE")][k % 4]
         tot = 3200
-    if d.weekday() < 5 and d not in HOLIDAYS:  # prima del lavoro: versione corta, la parte centrale resta intera
-        return S("swim", "Nuoto · soglia", "06:30", 60, [
-            "Riscaldamento: 200 sciolti A1 %s, 4 x 50 tecnica" % sw(d, "A1"),
-            "Lavoro: " + main, "Defaticamento: 100 sciolti",
-            "Totale circa %d m (versione corta prima del lavoro)" % (tot - 600)], fuel=F_SWIM, alts=["06:00", "19:00"])
-    return S("swim", "Nuoto · soglia", "06:30", 70, [
+    return S("swim", "Nuoto · soglia", "06:00", 70, [
         "Riscaldamento: 300 sciolti A1 %s, 8 x 50 tecnica (25 esercizio + 25 nuotata)" % sw(d, "A1"),
         "Lavoro: " + main, "4 x 50 in B2 %s, recupero 20''" % sw(d, "B2"), "Defaticamento: 200 sciolti A1",
-        "Totale circa %d m" % tot], fuel=F_SWIM, alts=["06:00", "19:00"])
+        "Totale circa %d m" % tot], fuel=F_SWIM, alts=["05:45", "08:00", "19:00"])
 
 
 def swim_end(d, meters, extra=""):
-    if d.weekday() < 5 and d not in HOLIDAYS:  # prima del lavoro: al massimo circa 60' in acqua
-        meters = min(meters, 2800)
-    return S("swim", "Nuoto · fondo", "06:30", 60 if meters <= 2800 else 75, [
+    return S("swim", "Nuoto · fondo", "06:00", 75, [
         "Riscaldamento: 400 A1 %s" % sw(d, "A1"),
         "Lavoro: blocchi da 500 in A2 %s, recupero 20'', fino a %d m totali" % (sw(d, "A2"), meters - 600) + (". " + extra if extra else ""),
-        "Defaticamento: 200 A1", "Totale circa %d m" % meters], fuel=F_SWIM, alts=["06:00", "19:00"])
+        "Defaticamento: 200 A1", "Totale circa %d m" % meters], fuel=F_SWIM, alts=["05:45", "08:00", "19:00"])
 
 
 def swim_easy(d, start="17:00", meters=2000):
@@ -136,9 +130,25 @@ def swim_easy(d, start="17:00", meters=2000):
         "200 sciolti", "Totale circa %d m" % meters], fuel=F_SWIM, alts=["18:00", "09:00"])
 
 
+def kg_step(d):
+    """+2,5 kg per lato ogni 3 settimane da metà dicembre, al massimo +7,5 kg."""
+    return max(0, min(3, (d - D(2026, 12, 14)).days // 21 + 1)) if d >= D(2026, 12, 14) else 0
+
+
+def bump(line, step):
+    if step == 0 or "manubri" in line or "elastico" in line.lower():
+        return line
+    line = re.sub(r"\((\d+(?:,\d)?)\+(\d+(?:,\d)?) kg\)", lambda m: "(%s+%s kg)" % ((("%g" % (float(m.group(1).replace(",", ".")) + 2.5 * step)).replace(".", ","),) * 2), line)
+    line = re.sub(r"(?<![+\d])(\d+) kg(?!\))", lambda m: ("%g kg" % (int(m.group(1)) + 2.5 * step)).replace(".", ","), line)
+    return line
+
+
 def gym(d, which, start="06:45", light=False):
     lib = (rj(os.path.join(DATA, "coach", "strength.json"), {}) or {}).get(which, [])
-    steps = [x for x in lib if x and not x.endswith(":")] if lib else []
+    st = 0 if light else kg_step(d)
+    steps = [bump(x, st) for x in lib if x and not x.endswith(":")] if lib else []
+    if st:
+        steps = ["Carichi +%s kg per lato rispetto alla scheda del coach. Se le ultime 2 ripetute non sono pulite, resta al carico precedente" % ("%g" % (2.5 * st)).replace(".", ",")] + steps
     if light:
         steps = ["Versione leggera: 3 serie invece di 4, stessi esercizi, carichi -20%"] + steps
     return S("gym", "Preparazione " + which, start, 60 if not light else 45, steps or ["Seduta di forza del coach"],
@@ -146,9 +156,12 @@ def gym(d, which, start="06:45", light=False):
 
 
 def gym_maint(d, start="06:45"):
+    st = 3
     return S("gym", "Forza di mantenimento", start, 40, [
-        "Riscaldamento 5' bike, affondi, slanci", "3 x 8 stacco a una gamba al Smith dx + sx (20+20 kg)",
-        "3 x 10 affondi al Smith dx + sx (15+15 kg)", "3 x 16 calf raise", "Core: plank 1', laterali 40'' dx e sx, x 2"],
+        "Meno serie ma carichi alti: mantieni la forza costruita in inverno",
+        bump("3 x 6 stacco a una gamba al Smith dx + sx (20+20 kg)", st + 1),
+        bump("3 x 8 affondi al Smith dx + sx (15+15 kg)", st + 1), bump("3 x 12 calf raise al Smith (15+15 kg)", st + 1),
+        "Core: plank 1', laterali 40'' dx e sx, x 2"],
         fuel="Solo acqua. Creatina dopo la seduta.", alts=["06:30", "19:00"])
 
 
@@ -289,11 +302,11 @@ def week_days(ws, typ, k):
                  [gym(d, "Upper"), bike_q(d, [3, 3, 2, 3][k], [12, 15, 20, 15][k], .88, .92, 5, "sweet spot")],
                  [bike_z2(d, 60), track(d, *[(6, 800, rp["I"] - 2, rp["I"] + 4, 120), (5, 1000, rp["I"], rp["I"] + 6, 150),
                                              (8, 600, rp["I"] - 6, rp["I"], 90), (6, 1000, rp["I"], rp["I"] + 5, 120)][k])],
-                 [swim_end(d, [3200, 3400, 3500, 3500][k]), run_easy(d, [35, 40, 40, 45][k])],
+                 [swim_end(d, [3200, 3400, 3500, 3500][k]), run_easy(d, [30, 35, 40, 45][k])],
                  [gym(d, "Lower")],
-                 [bike_long(d, [150, 165, 180, 180][k], [None, "2 x 15' a %s (80-85%% FTP)" % W(d, .8, .85), "3 x 15' a %s (80-85%% FTP)" % W(d, .8, .85),
+                 [bike_long(d, [135, 150, 165, 180][k], [None, "2 x 15' a %s (80-85%% FTP)" % W(d, .8, .85), "3 x 15' a %s (80-85%% FTP)" % W(d, .8, .85),
                                                        "3 x 20' a %s (80-85%% FTP)" % W(d, .8, .85)][k], brick=15)],
-                 [long_run(d, [16, 17, 18, 18][k]), swim_easy(d, "17:00", 2500)]][i]
+                 [long_run(d, [15, 16, 17, 18][k]), swim_easy(d, "17:00", 2500)]][i]
         elif typ == "rec":
             s = [[swim_easy(d, "06:30", 2400)], [bike_z2(d, 45, "19:00", drills=False)],
                  [run_easy(d, 35, 6)], [swim_end(d, 2500)], [rest()],
@@ -326,7 +339,7 @@ def week_days(ws, typ, k):
                  [gym(d, "Upper"), bike_q(d, [3, 3, 2][k], [10, 12, 20][k], [1.0, .98, .95][k], [1.03, 1.01, .98][k], [5, 5, 6][k], "soglia")],
                  [ftp_test(d)] if k == 1 else [bike_z2(d, 60), wed],
                  [swim_end(d, 3500), road_tempo(d, 4, 1.6, rp["T"], 60) if k == 1 else run_easy(d, 35)], [gym(d, "Lower")],
-                 [bike_long(d, [150, 165, 180][k], ["3 x 15'", "3 x 20'", "2 x 30'"][k] + " a %s (80-85%% FTP)" % W(d, .8, .85), brick=20, brick_pace=(295, 300))],
+                 [bike_long(d, [165, 180, 195][k], ["3 x 15'", "3 x 20'", "2 x 30'"][k] + " a %s (80-85%% FTP)" % W(d, .8, .85), brick=20, brick_pace=(295, 300))],
                  [long_run(d, [18, 20, 21][k], tails[k] % P(rp["HM"] + 3)), swim_easy(d)]][i]
         elif typ == "shm":
             s = [[swim_css(d, 0, "build"), run_easy(d, 45, 6)],
@@ -352,20 +365,20 @@ def week_days(ws, typ, k):
                  [bike_long(d, 120, None)], [long_run(d, 12), swim_easy(d)]][i]
         elif typ in ("spec",):
             sat = [bike_long(d, 210, "2 x 45' a %s (78-82%% FTP, ritmo gara)" % W(d, .78, .82), brick=20),
-                   bike_long(d, 225, "3 x 30' a %s (80%% FTP)" % W(d, .78, .82), brick=30),
+                   bike_long(d, 240, "3 x 30' a %s (80%% FTP)" % W(d, .78, .82), brick=30),
                    bike_long(d, 175, "SIMULAZIONE: 90 km a %s (75-80%% FTP) con alimentazione da gara" % W(d, .75, .8), brick=50),
-                   bike_long(d, 240, "3 x 40' a %s (78-82%% FTP)" % W(d, .78, .82), brick=30)][k]
+                   bike_long(d, 270, "3 x 40' a %s (78-82%% FTP)" % W(d, .78, .82), brick=30)][k]
             if k == 2:
                 sat["title"] = "Simulazione gara: bici 90 km + corsa 10 km"
                 sat["fuel"] = "Come in gara: 80-90 g di carboidrati l'ora in bici (2 gel l'ora + 1 Carbo Bar nella prima ora), 1 Electrolytes Boost l'ora; in corsa 1 gel ogni 25'. Frullato a colazione."
             sun = [long_run(d, 16, "4 x 1 km a %s/km dentro la seconda metà" % P(rp["HM"] + 4)),
-                   long_run(d, 18), long_run(d, 12, None), long_run(d, 18, "Ultimi 6 km a %s/km" % P(rp["HM"] + 14))][k]
+                   long_run(d, 19), long_run(d, 12, None), long_run(d, 20, "Ultimi 6 km a %s/km" % P(rp["HM"] + 14))][k]
             s = [[swim_css(d, k, "spec"), run_easy(d, 45, 6) if k != 3 else run_easy(d, 40, 6)],
                  [gym_maint(d), bike_q(d, [3, 2, 3, 2][k], [20, 30, 25, 40][k], .8, .85, 5, "ritmo gara")],
-                 [bike_z2(d, 75), track(d, *[(6, 1000, rp["K10"] - 5, rp["K10"], 90), (5, 1200, rp["K10"] - 2, rp["K10"] + 2, 90),
+                 [bike_z2(d, [75, 90, 90, 90][k]), track(d, *[(6, 1000, rp["K10"] - 5, rp["K10"], 90), (5, 1200, rp["K10"] - 2, rp["K10"] + 2, 90),
                                              (7, 800, rp["I"] - 2, rp["I"] + 3, 90), (6, 1000, rp["K10"] - 5, rp["K10"], 90)][k], title="Pista · velocità")],
-                 [swim_end(d, [3500, 3800, 3800, 4000][k], "Ultimi 1.900 m continui a ritmo gara %s" % sw(d, "RACE") if k in (2, 3) else ""), run_easy(d, 40)],
-                 [swim_easy(d, "06:30", 2200)],
+                 [swim_end(d, [3500, 3800, 3800, 4000][k], "Ultimi 1.900 m continui a ritmo gara %s" % sw(d, "RACE") if k in (2, 3) else ""), run_easy(d, [40, 45, 50, 50][k])],
+                 [swim_easy(d, "06:00", 2200)] + ([bike_z2(d, 45, "19:00", drills=False)] if k else []),
                  [sat], [sun]][i]
         elif typ == "recftp":
             s = [[swim_easy(d, "08:00", 2500), run_easy(d, 35, 6, "10:30")],  # Pasquetta
@@ -424,8 +437,13 @@ def ow(d, start, mins, extra=""):
 
 def special(d, s, rp):
     iso = d.isoformat()
-    if iso == "2027-02-20":  # sabato: il lungo con ritmo mezza va qui
-        return [long_run(d, 16, "Dal km 5 al km 13: 8 km a %s/km (ritmo mezza)" % P(rp["HM"] + 2), start="09:00")]
+    if iso == "2026-12-04":
+        return [bike_z2(d, 90, "09:00"), dict(run_easy(d, 30, 6, "15:00", "Corsa · veloce prima del volo"),
+                steps=["30' facili a %s, più 6 allunghi" % E(d), "Aereo alle 21:00: doccia e via"])]
+    if iso == "2027-02-18":  # il ritmo mezza della settimana va al giovedì sera
+        return [x for x in s if x["sport"] != "run"] + [road_tempo(d, 2, 4, rp["HM"] + 2, 120, title="Corsa · ritmo mezza su strada")]
+    if iso == "2027-02-20":  # sabato: bici lunga, domenica duathlon
+        return [bike_long(d, 150, "2 x 20' a %s (80%% FTP)" % W(d, .78, .82), start="08:30")]
     if iso == "2027-02-21":
         return [race_ev("Duathlon di Carnevale · Sabaudia", "09:30", 80, "allenamento", [
             "Duathlon sprint: circa 5 km corsa, 20 km bici, 2,5 km corsa",
@@ -519,7 +537,7 @@ def main():
                             "time": "" if tbc else "%s–%s" % (m2hm(s0), m2hm(e0))})
             work = d.weekday() < 5 and d not in HOLIDAYS and not away_t
             blocks = [x for x in evs if not x["tbc"]] + ([{"title": "Lavoro", "s": 8 * 60 + 40, "e": 18 * 60 + 45}] if work else [])
-            if away_t and d < RACE - dt.timedelta(days=3):
+            if away_t and d < RACE - dt.timedelta(days=3) and iso != "2026-12-04":
                 note = "Sei fuori casa (%s). Se scii, conta come allenamento aerobico: niente altro. Se non scii: 30-40' di corsa facile a %s." % (away_t, E(d))
                 sess = [away(note)]
             out_s, taken = [], []
@@ -539,7 +557,7 @@ def main():
                 chosen = None
                 for c in cands:
                     a, b = hm(c), hm(c) + x["dur"]
-                    if a < 6 * 60 or (d.weekday() >= 5 and a < 7 * 60):
+                    if a < 5 * 60 + 45 or ((d.weekday() >= 5 or d in HOLIDAYS) and a < 7 * 60):
                         continue
                     clash = [y for y in blocks if not (b + 30 <= y["s"] or a >= y["e"] + 15)]
                     if x.get("ok"):
