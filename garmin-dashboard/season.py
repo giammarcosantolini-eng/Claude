@@ -110,6 +110,11 @@ def swim_css(d, k, kind="base"):
                 "5 x 400: dispari ritmo gara %s, pari B1 %s, recupero 20''" % (sw(d, "RACE"), sw(d, "B1")),
                 "2 x 900 a ritmo gara %s, recupero 1'" % sw(d, "RACE")][k % 4]
         tot = 3200
+    if d.weekday() < 5 and d not in HOLIDAYS:  # prima del lavoro: versione corta, la parte centrale resta intera
+        return S("swim", "Nuoto · soglia", "06:30", 60, [
+            "Riscaldamento: 200 sciolti A1 %s, 4 x 50 tecnica" % sw(d, "A1"),
+            "Lavoro: " + main, "Defaticamento: 100 sciolti",
+            "Totale circa %d m (versione corta prima del lavoro)" % (tot - 600)], fuel=F_SWIM, alts=["06:00", "19:00"])
     return S("swim", "Nuoto · soglia", "06:30", 70, [
         "Riscaldamento: 300 sciolti A1 %s, 8 x 50 tecnica (25 esercizio + 25 nuotata)" % sw(d, "A1"),
         "Lavoro: " + main, "4 x 50 in B2 %s, recupero 20''" % sw(d, "B2"), "Defaticamento: 200 sciolti A1",
@@ -117,7 +122,9 @@ def swim_css(d, k, kind="base"):
 
 
 def swim_end(d, meters, extra=""):
-    return S("swim", "Nuoto · fondo", "06:30", 75, [
+    if d.weekday() < 5 and d not in HOLIDAYS:  # prima del lavoro: al massimo circa 60' in acqua
+        meters = min(meters, 2800)
+    return S("swim", "Nuoto · fondo", "06:30", 60 if meters <= 2800 else 75, [
         "Riscaldamento: 400 A1 %s" % sw(d, "A1"),
         "Lavoro: blocchi da 500 in A2 %s, recupero 20'', fino a %d m totali" % (sw(d, "A2"), meters - 600) + (". " + extra if extra else ""),
         "Defaticamento: 200 A1", "Totale circa %d m" % meters], fuel=F_SWIM, alts=["06:00", "19:00"])
