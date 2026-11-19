@@ -301,7 +301,7 @@ def away(note):
 
 # ------------------------------------------------------------------ settimane
 WEEKS = [
-    ("2026-11-30", "rec1", "Recupero dopo Fiumicino e test FTP"),
+    ("2026-11-30", "rec1", "Recupero dopo Fiumicino"),
     ("2026-12-07", "base", "Base 1"), ("2026-12-14", "base", "Base 2"), ("2026-12-21", "base", "Base 3 · Natale"),
     ("2026-12-28", "base", "Base 4 · Capodanno"),
     ("2027-01-04", "b10", "Specifico 10 km"), ("2027-01-11", "t10", "Scarico e gara 10 km"),
@@ -328,7 +328,7 @@ def week_days(ws, typ, k):
         if typ == "rec1":
             s = [[swim_easy(d, "06:30", 2400), bike_z2(d, 45, "19:00", drills=False)],
                  [gym(d, "Upper", light=True), run_easy(d, 40, 6)],
-                 [ftp_test(d), run_easy(d, 35)],
+                 [bike_z2(d, 60, "06:15"), run_easy(d, 35)],
                  [swim_end(d, 3000), bike_z2(d, 60, "19:00")],
                  [], [], []][i]
         elif typ == "base":
