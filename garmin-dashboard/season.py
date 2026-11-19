@@ -43,25 +43,59 @@ def frac(d, d0, d1):
     return (d - d0).days / max(1, (d1 - d0).days)
 
 
-def ftp(d):  # ipotesi: si aggiorna con i test
-    if d < D(2026, 12, 2): return 194
-    if d < D(2027, 1, 27): return 200
-    if d < D(2027, 3, 31): return 205
-    return 210
+PARAMS = rj(os.path.join(DATA, "coach", "season_params.json"), {}) or {}
+
+
+def ftp(d):  # punti (data, watt) in data/coach/season_params.json, aggiornati dopo ogni test
+    pts = PARAMS.get("ftp") or [["2026-11-01", 194]]
+    val = pts[0][1]
+    for ds, w in pts:
+        if d >= D.fromisoformat(ds):
+            val = w
+    return val
 
 
 def run_p(d):
-    t = frac(d, D(2026, 12, 1), D(2027, 2, 28))
+    r = PARAMS.get("run") or {"from": "2026-12-01", "to": "2027-02-28", "E": [[308, 330], [300, 320]], "T": [268, 256],
+                               "I": [236, 226], "K10": 240, "HM": 256, "R703": [300, 312]}
+    t = frac(d, D.fromisoformat(r["from"]), D.fromisoformat(r["to"]))
     return {
-        "E": (lerp(308, 300, t), lerp(330, 320, t)),           # facile
-        "T": lerp(268, 256, t),                                # soglia / ritmo mezza
-        "I": lerp(236, 226, frac(d, D(2026, 12, 1), D(2027, 1, 17))),  # ripetute 800-1000
-        "K10": 240, "HM": 256, "R703": (300, 312),
+        "E": (lerp(r["E"][0][0], r["E"][1][0], t), lerp(r["E"][0][1], r["E"][1][1], t)),  # facile
+        "T": lerp(r["T"][0], r["T"][1], t),                                              # soglia
+        "I": lerp(r["I"][0], r["I"][1], t),                                              # ripetute 800-1000
+        "K10": r["K10"], "HM": r["HM"], "R703": tuple(r["R703"]),
     }
 
 
 def css(d):
-    return 105 if d < D(2027, 2, 1) else 103
+    pts = PARAMS.get("css") or [["2026-11-01", 105]]
+    val = pts[0][1]
+    for ds, c in pts:
+        if d >= D.fromisoformat(ds):
+            val = c
+    return val
+
+
+def sync_calendar():
+    """Scarica gli impegni fino a fine aprile in data/calendar/season.json (link privati in data/calendars.json)."""
+    import urllib.request
+    import calendar_sync as cs
+    links = rj(os.path.join(DATA, "calendars.json"), {}) or {}
+    lo, hi = dt.datetime(2026, 11, 28), dt.datetime(2027, 4, 30)
+    ev = []
+    for name, url in links.items():
+        try:
+            req = urllib.request.Request(url.replace("webcal://", "https://"), headers={"User-Agent": "Mozilla/5.0"})
+            text = urllib.request.urlopen(req, timeout=60).read().decode("utf-8", "replace")
+        except Exception as e:
+            print("Calendario %s non raggiungibile (%s): tengo quello salvato" % (name, e.__class__.__name__))
+            return
+        ev += cs.parse_ics(text, name, lo, hi)
+    ev.sort(key=lambda e: e["start"])
+    os.makedirs(os.path.join(DATA, "calendar"), exist_ok=True)
+    with open(os.path.join(DATA, "calendar", "season.json"), "w", encoding="utf-8") as f:
+        json.dump(ev, f, ensure_ascii=False, indent=1)
+    print("Calendario aggiornato: %d impegni fino ad aprile" % len(ev))
 
 
 def sw(d, z):
@@ -610,7 +644,8 @@ def main():
                           "ftp": ftp(ws + dt.timedelta(days=3)), "css": P(css(ws))})
     for c in conflicts:
         print("CONFLITTO", c)
-    payload = {"weeks": weeks_out, "built": dt.datetime.now().strftime("%d/%m/%Y"), "race": RACE.isoformat()}
+    payload = {"weeks": weeks_out, "built": dt.datetime.now().strftime("%d/%m/%Y"), "race": RACE.isoformat(),
+               "history": PARAMS.get("storico", [])}
     with open(os.path.join(HERE, "season_template.html"), encoding="utf-8") as f:
         html = f.read()
     html = html.replace("/*__DATA__*/null", json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
@@ -623,4 +658,7 @@ def main():
 
 
 if __name__ == "__main__":
+    import sys
+    if "--sync" in sys.argv:
+        sync_calendar()
     main()

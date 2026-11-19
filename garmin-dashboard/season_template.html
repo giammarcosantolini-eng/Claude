@@ -157,5 +157,6 @@ function show(i){
   }).join("");
 }
 show(nowIdx()<0?0:nowIdx());
-$("foot").textContent=`Proposta generata il ${D.built} dai tuoi dati Garmin, dal calendario e dalle tue regole. Da validare con coach e nutrizionista.`;
+$("foot").innerHTML=`Aggiornato il ${D.built} dai tuoi dati Garmin, dal calendario e dalle tue regole. Si aggiorna ogni domenica mattina. Da validare con coach e nutrizionista.`+
+  ((D.history||[]).length?`<div style="margin-top:8px"><strong>Cosa è cambiato:</strong><ul style="margin:4px 0 0;padding-left:18px">${D.history.slice().reverse().map(h=>`<li>${esc(h)}</li>`).join("")}</ul></div>`:"");
 </script>
