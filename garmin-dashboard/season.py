@@ -299,6 +299,130 @@ def away(note):
     return S("away", "Fuori casa", "", 0, [note])
 
 
+# ------------------------------------------------------------------ versione "da coach" delle sedute (per l'export Excel)
+# Righe brevi come nelle schede del coach: (testo, riferimento). Riferimento solo zona (nuoto), Watt (bici), FC (corsa).
+def Wc(d, lo, hi=None):
+    f = ftp(d)
+    return "%d/%d Watt" % (round(f * lo), round(f * hi)) if hi else "%d Watt" % round(f * lo)
+
+
+def with_coach(builder, rows_fn):
+    def wrapped(*a, **k):
+        x = builder(*a, **k)
+        try:
+            x["coach"] = rows_fn(*a, **k)
+        except Exception:
+            pass
+        return x
+    wrapped.__name__ = builder.__name__
+    return wrapped
+
+
+SEC = None  # segnaposto riga di sezione
+
+
+def _swim_css(d, k, kind="base"):
+    if kind == "base":
+        main = [[("10 x 100 rec 15''", "B1")], [("12 x 100 rec 15''", "B1")], [("4 x 300 rec 25''", "B1")]][k % 3]
+        tot = [2800, 3000, 3000][k % 3]
+    elif kind == "build":
+        main = [[("6 x 200 rec 20''", "B1")], [("4 x 300 rec 25''", "B1")], [("3 x 400 rec 30''", "B1")]][k % 3]
+        tot = 3000
+    else:
+        main = [[("3 x 500 rec 30''", "B1")], [("4 x 400 rec 20''", "B1")], [("5 x 400 rec 20'' (dispari ritmo gara)", "B1")],
+                [("2 x 900 rec 1'", "B1")]][k % 4]
+        tot = 3200
+    return [("Riscaldamento:", SEC), ("300 sciolti", "A1"), ("8 x 50 tecnica", ""), ("Lavoro:", SEC)] + main + [
+        ("4 x 50 rec 20''", "B2"), ("200 sciolti", "A1"), ("Totale: %d m" % tot, "TOT")]
+
+
+def _swim_end(d, meters, extra=""):
+    rows = [("Riscaldamento:", SEC), ("400", "A1"), ("Lavoro:", SEC), ("%d x 500 rec 20''" % max(1, (meters - 600) // 500), "A2")]
+    if extra:
+        rows.append(("1900 continui ritmo gara" if "1.900" in extra else "1500 continui ritmo gara", "B1"))
+    return rows + [("200", "A1"), ("Totale: %d m" % meters, "TOT")]
+
+
+def _swim_easy(d, start="17:00", meters=2000):
+    return [("%d facili" % (meters - 400), "A1"), ("8 x 25 1P 1F", "C1"), ("200 sciolti", "A1"), ("Totale: %d m" % meters, "TOT")]
+
+
+def _run_easy(d, mins, strides=0, start="19:00", title=""):
+    return [("%d' facili" % mins, "140 FC")] + ([("%d allunghi prog." % strides, "")] if strides else [])
+
+
+def _track(d, reps, dist, pace_lo, pace_hi, rec, title="", note=""):
+    r = "%d'%02d" % (rec // 60, rec % 60)
+    return [("Riscaldamento:", SEC), ("10'", ""), ("Slanci", ""), ("Andature", ""), ("3 Allunghi", ""),
+            ("%d x %d Rec. %s" % (reps, dist, r), ""), ("Defaticamento", SEC)]
+
+
+def _road_tempo(d, blocks, km_each, pace, rec, start="19:00", title=""):
+    return [("Riscaldamento:", SEC), ("15'", ""), ("4 Allunghi", ""),
+            ("%d x %s Km Medio rec %d''" % (blocks, ("%g" % km_each).replace(".", ","), rec), "170-175 FC"), ("Defaticamento", SEC)]
+
+
+def _bike_z2(d, mins, start="06:15", drills=True):
+    rows = [("Riscaldamento:", SEC), ("10' prog.", "da %d a %d Watt" % (round(ftp(d) * .45), round(ftp(d) * .6))),
+            ("%d' Fondo Aerobico" % (mins - 15), Wc(d, .65, .72))]
+    if drills:
+        rows.append(("5 x 1' agilità 105-110 rpm", ""))
+    return rows + [("5' Defaticamento", "")]
+
+
+def _bike_q(d, sets, mins, lo, hi, rec, label, start="19:00"):
+    return [("Riscaldamento:", SEC), ("15' prog.", "da %d a %d Watt" % (round(ftp(d) * .55), round(ftp(d) * .75))),
+            ("Lavoro:", SEC), ("%d x %d' rec %d'" % (sets, mins, rec), Wc(d, lo, hi)), ("10' Defaticamento", "")]
+
+
+def _bike_long(d, mins, blocks=None, brick=0, brick_pace=None, start="08:30", outdoor=True):
+    rows = [("Uscita %s" % m2hm(mins), Wc(d, .65, .75))]
+    if blocks:
+        import re as _re
+        m = _re.match(r"^([^a]*?)\s+a\s", blocks)
+        txt = (m.group(1) if m else blocks.split(" a ")[0]).replace("SIMULAZIONE: ", "Simulazione ")
+        lo_hi = _re.search(r"\((\d+)(?:-(\d+))?%", blocks)
+        if lo_hi:
+            lo = int(lo_hi.group(1)) / 100
+            hi = int(lo_hi.group(2) or lo_hi.group(1)) / 100
+            rows.append(("di cui " + txt, Wc(d, lo, hi)))
+        else:
+            rows.append(("di cui " + txt, ""))
+    if brick:
+        rows.append(("Corsa %d' subito dopo" % brick, "145-155 FC"))
+    return rows
+
+
+def _long_run(d, km, tail=None, start="08:30"):
+    rows = [("%s Km facili" % ("%g" % km).replace(".", ","), "140 FC")]
+    if tail:
+        import re as _re
+        m = _re.search(r"(\d+) km", tail)
+        if "1 km" in tail and "x" in tail:
+            rows.append(("di cui " + tail.split(" a ")[0], "165-172 FC"))
+        elif m:
+            rows.append(("di cui %s Km Medio" % m.group(1), "165-172 FC"))
+    return rows
+
+
+def _ftp_test(d, start="06:15"):
+    return [("Riscaldamento:", SEC), ("15' prog.", ""), ("3 x 1' forte rec 1'", ""), ("5' a tutta", ""), ("10' facili", ""),
+            ("Lavoro:", SEC), ("TEST 20' a tutta", ""), ("10' Defaticamento", "")]
+
+
+swim_css = with_coach(swim_css, _swim_css)
+swim_end = with_coach(swim_end, _swim_end)
+swim_easy = with_coach(swim_easy, _swim_easy)
+run_easy = with_coach(run_easy, _run_easy)
+track = with_coach(track, _track)
+road_tempo = with_coach(road_tempo, _road_tempo)
+bike_z2 = with_coach(bike_z2, _bike_z2)
+bike_q = with_coach(bike_q, _bike_q)
+bike_long = with_coach(bike_long, _bike_long)
+long_run = with_coach(long_run, _long_run)
+ftp_test = with_coach(ftp_test, _ftp_test)
+
+
 # ------------------------------------------------------------------ settimane
 WEEKS = [
     ("2026-11-30", "rec1", "Recupero dopo Fiumicino"),

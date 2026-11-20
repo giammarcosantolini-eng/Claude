@@ -60,6 +60,14 @@ def target_of(step):
     return ""
 
 
+def clean(step):
+    """Per sedute senza versione 'da coach': tolgo passi, percentuali, orari e note."""
+    step = re.sub(r"\s*\(?\d+-\d+% FTP[^)]*\)?", "", step)
+    step = re.sub(r"\s*(a\s+)?\d:\d\d(–\d:\d\d)?/(km|100)(\s*\(FC[^)]*\))?", "", step)
+    step = re.sub(r"\s*\d{2,3}–\d{2,3} W", "", step)
+    return step.strip(" ,.:") if step.strip() else ""
+
+
 def style_like(dst, src):
     dst.font = copy.copy(src.font)
     dst.fill = copy.copy(src.fill)
@@ -106,7 +114,7 @@ def main():
             prog.unmerge_cells(str(rng))
     prog.delete_rows(15, prog.max_row)
     prog.title = "Programma " + MESI_T[ws0.month - 1]
-    prog["A2"] = "%s | Proposta per Jesolo 70.3 · %s" % (week_label(ws0), w["label"])
+    prog["A2"] = "%s | %s" % (week_label(ws0), w["label"])
     grid = {}
     for i, d in enumerate(w["days"]):
         col = 2 + i
@@ -115,9 +123,6 @@ def main():
             c.value = "—"
             c._style = copy.copy(ref_empty)
         if d["sessions"] and all(x["sport"] == "away" for x in d["sessions"]):
-            c = prog.cell(7, col)
-            c.value = "Fuori casa (sci)"
-            c._style = copy.copy(ref_empty)
             continue
         for s in d["sessions"]:
             if not s.get("slot") or s["sport"] not in SPORT_NAME:
@@ -127,13 +132,20 @@ def main():
             rows = [5 + k for k, (_, lo, hi) in enumerate(SLOTS) if a < hi and b > lo] or [5]
             name = s["title"] if s["sport"] == "gym" else SPORT_NAME[s["sport"]]
             code = s.get("code")
+            if s["sport"] == "race":
+                name = s["title"].replace("GARA · ", "Gara ")
             first = "%s (%s)" % (name, code) if code else name
-            if s["slot"].split("–")[0] != SLOTS[rows[0] - 5][0].split("–")[0]:
-                first += " · %s" % s["slot"].split("–")[0]
             sty = refs.get(s["sport"], refs.get("run"))
             for j, r in enumerate(rows):
                 c = prog.cell(r, col)
-                c.value = first if j == 0 else (name if j == len(rows) - 1 and len(rows) > 2 else c.value if c.value not in (None, "—") else "")
+                if len(rows) == 1:
+                    c.value = first
+                elif j == 0:
+                    c.value = name
+                elif j == 1 and code:
+                    c.value = "(%s)" % code
+                else:
+                    c.value = name if j == len(rows) - 1 else ""
                 c._style = copy.copy(sty)
             grid.setdefault(i, []).append(first)
 
@@ -154,32 +166,22 @@ def main():
         sh["A2"] = "Sedute " + " · ".join(codes) if codes else "Nessuna seduta questa settimana"
         r = 4
         for s in lib[key]:
-            c = sh.cell(r, 1, "%s: %s" % (s["code"], s["title"].split(" · ")[-1] if " · " in s["title"] else s["title"]))
+            c = sh.cell(r, 1, "%s:" % s["code"])
             if s_hdr: c._style = copy.copy(s_hdr)
             r += 1
+            rows = s.get("coach") or [(clean(x), "") for x in s["steps"] if clean(x)]
             n = 0
-            for step in s["steps"]:
-                if step.startswith("Totale"):
-                    c = sh.cell(r, 1, step)
+            for txt, ref in rows:
+                if ref is None:  # sezione
+                    c = sh.cell(r, 1, txt)
+                    if s_sec: c._style = copy.copy(s_sec)
+                elif ref == "TOT":
+                    c = sh.cell(r, 1, txt.replace("Totale:", "Totale %s:" % s["code"]))
                     if s_tot: c._style = copy.copy(s_tot)
-                    r += 1
-                    continue
-                m = re.match(r"^(Riscaldamento|Lavoro|Defaticamento|Dentro|Subito dopo)[^:]*:\s*(.*)$", step)
-                if m and s_sec:
-                    c = sh.cell(r, 1, m.group(1) + ":")
-                    c._style = copy.copy(s_sec)
-                    r += 1
-                    step = m.group(2)
-                    if not step:
-                        continue
-                ca = sh.cell(r, 1, step)
-                cb = sh.cell(r, 2, target_of(step))
-                ca._style = copy.copy(s_alt[n % 2]); cb._style = copy.copy(s_alt_b[n % 2])
-                n += 1
-                r += 1
-            if s.get("fuel"):
-                ca = sh.cell(r, 1, "Integratori: " + s["fuel"])
-                ca._style = copy.copy(s_alt[n % 2]); sh.cell(r, 2)._style = copy.copy(s_alt_b[n % 2])
+                else:
+                    ca, cb = sh.cell(r, 1, txt), sh.cell(r, 2, ref or None)
+                    ca._style = copy.copy(s_alt[n % 2]); cb._style = copy.copy(s_alt_b[n % 2])
+                    n += 1
                 r += 1
             r += 1
     fill_lib("nuoto", "swim", "Nuoto")
