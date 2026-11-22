@@ -576,16 +576,19 @@ def week_days(ws, typ, k):
                  [rest("Recupero. Camminata, viaggio di ritorno. Festa!")]][i]
         s = special(d, s or [], rp)
         out.append((d, s))
-    # regola: niente Preparazione Lower nelle 48 ore prima dell'uscita del sabato
+    # regola: niente Preparazione Lower nelle 48 ore prima dell'uscita del sabato.
+    # La Lower va il lunedì mattina (pesi sempre di mattina); il nuoto del lunedì passa al venerdì mattina
+    # (lavora da casa: nuoto preferibilmente di mattina), la corsa facile resta il lunedì sera.
     fri = out[4][1]
     low = [x for x in fri if x["sport"] == "gym" and "Lower" in x["title"]]
     if low:
         mon = out[0][1]
-        mrun = [x for x in mon if x["sport"] == "run"]
-        out[4] = (out[4][0], [x for x in fri if x not in low] + [dict(x, start="07:00", alts=["06:30", "18:45"]) for x in mrun])
-        # pesi sempre la mattina (palestra più vuota): il nuoto del lunedì passa alla sera
-        rest_mon = [dict(x, start="19:00", alts=["20:00"]) if x["sport"] == "swim" else x for x in mon if x not in mrun]
-        out[0] = (out[0][0], rest_mon + [dict(x, start="06:45", alts=["06:15", "07:00"]) for x in low])
+        mswim = [x for x in mon if x["sport"] == "swim"]
+        out[4] = (out[4][0], [x for x in fri if x not in low] + [dict(x, start="07:00", alts=["06:30", "18:45"]) for x in mswim])
+        out[0] = (out[0][0], [x for x in mon if x not in mswim] + [dict(x, start="06:45", alts=["06:15", "07:00"]) for x in low])
+    # nuoto facile della domenica: di mattina dopo la corsa lunga, se c'è spazio
+    sun = out[6][1]
+    out[6] = (out[6][0], [dict(x, start="11:00", alts=["17:00", "18:00"]) if x["sport"] == "swim" and "facile" in x["title"] else x for x in sun])
     return out
 
 
