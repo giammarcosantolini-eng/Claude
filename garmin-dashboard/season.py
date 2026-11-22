@@ -245,6 +245,7 @@ def bike_z2(d, mins, start="06:15", drills=True):
     st = ["%d' in Z2 a %s (65-72%% FTP), cadenza 85-95" % (mins, W(d, .65, .72))]
     if drills:
         st.append("Dentro: 5 x 1' cadenza alta 105-110 rpm, recupero 2'")
+        st.append("E 6 x 15'' ripartenze forti da seduto (come all'uscita da una curva), recupero 2' facile")
     return S("bike", "Bici · fondo sui rulli", start, mins, st, fuel=F_BIKE_IN, alts=["06:00", "19:00"])
 
 
@@ -367,6 +368,7 @@ def _bike_z2(d, mins, start="06:15", drills=True):
             ("%d' Fondo Aerobico" % (mins - 15), Wc(d, .65, .72))]
     if drills:
         rows.append(("5 x 1' agilità 105-110 rpm", ""))
+        rows.append(("6 x 15'' ripartenze da seduto rec 2'", ""))
     return rows + [("5' Defaticamento", "")]
 
 
@@ -574,6 +576,14 @@ def week_days(ws, typ, k):
                  [rest("Recupero. Camminata, viaggio di ritorno. Festa!")]][i]
         s = special(d, s or [], rp)
         out.append((d, s))
+    # regola: niente Preparazione Lower nelle 48 ore prima dell'uscita del sabato
+    fri = out[4][1]
+    low = [x for x in fri if x["sport"] == "gym" and "Lower" in x["title"]]
+    if low:
+        mon = out[0][1]
+        mrun = [x for x in mon if x["sport"] == "run"]
+        out[4] = (out[4][0], [x for x in fri if x not in low] + [dict(x, start="07:00", alts=["06:30", "18:45"]) for x in mrun])
+        out[0] = (out[0][0], [x for x in mon if x not in mrun] + [dict(x, start="19:00", alts=["20:00", "06:00"]) for x in low])
     return out
 
 
