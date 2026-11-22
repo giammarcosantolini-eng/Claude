@@ -186,7 +186,7 @@ def gym(d, which, start="06:45", light=False):
     if light:
         steps = ["Versione leggera: 3 serie invece di 4, stessi esercizi, carichi -20%"] + steps
     return S("gym", "Preparazione " + which, start, 60 if not light else 45, steps or ["Seduta di forza del coach"],
-             fuel="Solo acqua. Creatina dopo la seduta.", alts=["06:30", "19:00"])
+             fuel="Solo acqua. Creatina dopo la seduta.", alts=["06:15", "07:00", "08:30", "09:30"])
 
 
 def gym_maint(d, start="06:45"):
@@ -196,7 +196,7 @@ def gym_maint(d, start="06:45"):
         bump("3 x 6 stacco a una gamba al Smith dx + sx (20+20 kg)", st + 1),
         bump("3 x 8 affondi al Smith dx + sx (15+15 kg)", st + 1), bump("3 x 12 calf raise al Smith (15+15 kg)", st + 1),
         "Core: plank 1', laterali 40'' dx e sx, x 2"],
-        fuel="Solo acqua. Creatina dopo la seduta.", alts=["06:30", "19:00"])
+        fuel="Solo acqua. Creatina dopo la seduta.", alts=["06:15", "07:00", "08:30", "09:30"])
 
 
 def run_easy(d, mins, strides=0, start="19:00", title="Corsa · facile"):
@@ -583,7 +583,9 @@ def week_days(ws, typ, k):
         mon = out[0][1]
         mrun = [x for x in mon if x["sport"] == "run"]
         out[4] = (out[4][0], [x for x in fri if x not in low] + [dict(x, start="07:00", alts=["06:30", "18:45"]) for x in mrun])
-        out[0] = (out[0][0], [x for x in mon if x not in mrun] + [dict(x, start="19:00", alts=["20:00", "06:00"]) for x in low])
+        # pesi sempre la mattina (palestra più vuota): il nuoto del lunedì passa alla sera
+        rest_mon = [dict(x, start="19:00", alts=["20:00"]) if x["sport"] == "swim" else x for x in mon if x not in mrun]
+        out[0] = (out[0][0], rest_mon + [dict(x, start="06:45", alts=["06:15", "07:00"]) for x in low])
     return out
 
 
