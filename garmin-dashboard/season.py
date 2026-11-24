@@ -12,7 +12,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "data")
 D = dt.date
 START, RACE = D(2026, 11, 30), D(2027, 4, 24)
-HOLIDAYS = {D(2026, 12, 4), D(2026, 12, 8), D(2026, 12, 25), D(2026, 12, 26), D(2027, 1, 1), D(2027, 1, 6),
+HOLIDAYS = {D(2026, 12, 8), D(2026, 12, 25), D(2026, 12, 26), D(2027, 1, 1), D(2027, 1, 6),
             D(2027, 3, 29), D(2027, 4, 25)}
 GG = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"]
 
@@ -612,10 +612,8 @@ def special(d, s, rp):
     iso = d.isoformat()
     if iso in PARAMS.get("giorni_liberi", []):
         return [rest("Giornata piena di impegni: riposo.")]
-    if iso == "2026-12-04":
-        return [dict(swim_end(d, 3000), start="07:30", alts=["08:00"]), dict(bike_z2(d, 75, "09:30"), alts=["10:00"]),
-                dict(run_easy(d, 30, 6, "15:00", "Corsa · veloce prima del volo"),
-                     steps=["30' facili a %s, più 6 allunghi" % E(d), "Aereo alle 21:00: doccia e via"])]
+    if iso == "2026-12-04":  # si lavora e la sera c'è l'aereo: solo il nuoto di fondo prima del lavoro
+        return [dict(swim_end(d, 3000), alts=["05:45"])]
     if iso == "2027-02-18":  # il ritmo mezza della settimana va al giovedì sera
         return [x for x in s if x["sport"] != "run"] + [road_tempo(d, 2, 4, rp["HM"] + 2, 120, title="Corsa · ritmo mezza su strada")]
     if iso == "2027-02-20":  # sabato: bici lunga, domenica duathlon
