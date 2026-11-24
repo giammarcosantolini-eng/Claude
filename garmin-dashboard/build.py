@@ -350,10 +350,12 @@ def main():
                 if not src:
                     continue
                 w["days"][k].remove(src)
+                if o.get("drop"):  # seduta tolta (indicazione del coach)
+                    continue
                 nk = (dt.date.fromisoformat(o["new_date"]) - ws).days
                 nb = dict(src, start=o["new_slot"].split("–")[0], slot=o["new_slot"],
                           moved="da %s %s" % (GGN[k], src["slot"]), why=o.get("why", ""), ok=o.get("ok", False),
-                          meal=o.get("meal"), fuel=o.get("fuel"))
+                          meal=o.get("meal"), fuel=o.get("fuel"), detail=o.get("detail"), paces=o.get("paces"))
                 if o.get("new_text"):
                     nb["text"] = o["new_text"]
                 w["days"][nk].append(nb)
@@ -421,7 +423,7 @@ def main():
                                 break
                     sess.append({"slot": b["slot"], "text": b["text"], "sport": sp, "key": key, "fuel": ftxt, "fkcal": fkcal,
                                  "clash": [("%s %s" % (x["title"], x["time"])) for x in clash], "move": move, "_r": (s0, e0), "moved": b.get("moved"), "why": b.get("why"),
-                                 "detail": lib.get(key, []) if key else [], "status": st,
+                                 "detail": b.get("detail") or (lib.get(key, []) if key else []), "paces_ovr": b.get("paces"), "status": st,
                                  "did": {"km": round(match["km"], 2), "sec": round(match["sec"]), "hr": match["hr"]} if match else None})
                 extra = [{"sport": a["sport"], "km": round(a["km"], 2), "sec": round(a["sec"])} for a in avail]
                 # frullato di barbabietola: 3 ore prima degli sforzi importanti
@@ -510,7 +512,7 @@ def main():
         for w in coach or []:
             for d in w["days"]:
                 for x in d["sessions"]:
-                    x["paces"] = run_paces(x)
+                    x["paces"] = x.pop("paces_ovr", None) or run_paces(x)
         runmodel = rp
         track = read_json(os.path.join(DATA, "coach", "track.json"))
         if track and coach:
