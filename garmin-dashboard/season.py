@@ -610,9 +610,12 @@ def ow(d, start, mins, extra=""):
 
 def special(d, s, rp):
     iso = d.isoformat()
+    if iso in PARAMS.get("giorni_liberi", []):
+        return [rest("Giornata piena di impegni: riposo.")]
     if iso == "2026-12-04":
-        return [bike_z2(d, 90, "09:00"), dict(run_easy(d, 30, 6, "15:00", "Corsa · veloce prima del volo"),
-                steps=["30' facili a %s, più 6 allunghi" % E(d), "Aereo alle 21:00: doccia e via"])]
+        return [dict(swim_end(d, 3000), start="07:30", alts=["08:00"]), dict(bike_z2(d, 75, "09:30"), alts=["10:00"]),
+                dict(run_easy(d, 30, 6, "15:00", "Corsa · veloce prima del volo"),
+                     steps=["30' facili a %s, più 6 allunghi" % E(d), "Aereo alle 21:00: doccia e via"])]
     if iso == "2027-02-18":  # il ritmo mezza della settimana va al giovedì sera
         return [x for x in s if x["sport"] != "run"] + [road_tempo(d, 2, 4, rp["HM"] + 2, 120, title="Corsa · ritmo mezza su strada")]
     if iso == "2027-02-20":  # sabato: bici lunga, domenica duathlon
