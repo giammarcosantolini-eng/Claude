@@ -499,7 +499,7 @@ def main():
             if k == "C3":
                 return ["Riscaldamento a circa %s." % e,
                         "Test del coach: 8 x 1000 a 3:30-3:40/km, per vedere se hai quel passo. Dai tuoi dati oggi il ritmo sostenibile è %s–%s/km (miglior km di sempre 3:55)." % (P(rp["p5"] - 8), P(rp["p5"] - 2)),
-                        "Come farlo: prima ripetuta a 3:40 e guarda come la chiudi. Se dalla terza non tieni sotto 3:45 o il battito supera 188, passa a %s–%s/km (ritmo da 10 km sotto i 40') e completa tutte e 8." % (P(rp["g5"] - 5), P(rp["g5"])),
+                        "Come farlo: prima ripetuta a 3:40 e guarda come la chiudi. Se dalla terza non tieni sotto 3:45 o il battito supera 180, passa a %s–%s/km (ritmo da 10 km sotto i 40') e completa tutte e 8." % (P(rp["g5"] - 5), P(rp["g5"])),
                         "Il risultato è un dato prezioso: segna i tempi di ogni ripetuta, la dashboard li legge dal Garmin se usi il tasto giro.",
                         "Recupero 2'30: camminata o corsa lentissima, il battito deve scendere sotto 130."]
             if k == "C5":
